@@ -215,6 +215,7 @@ struct hash<fiction::port_position>
         return h;
     }
 };
+
 // hashing for port_direction
 template <>
 struct hash<fiction::port_direction>
@@ -224,6 +225,7 @@ struct hash<fiction::port_direction>
         return std::hash<std::size_t>{}(static_cast<std::size_t>(port.dir));
     }
 };
+
 // hashing for port_list
 template <typename PortType>
 struct hash<fiction::port_list<PortType>>

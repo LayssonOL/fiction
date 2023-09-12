@@ -274,6 +274,159 @@ struct inml_technology
 };
 
 /**
+ * in-plane Nanomagnet Logic (iNML) technology implementation of the FCN concept following the NMLib shape engineer rules.
+ */
+struct nmlib_inml_technology
+{
+    /**
+     * Possible types of iNML cells.
+     */
+    enum cell_type : uint8_t
+    {
+        /**
+         * Symbol used for empty iNML cells.
+         */
+        EMPTY = ' ',
+        /**
+         * Symbol used for normal iNML cells.
+         */
+        NORMAL = 'x',
+        /**
+         * Symbol used for input iNML cells.
+         */
+        INPUT = 'i',
+        /**
+         * Symbol used for output iNML cells.
+         */
+        OUTPUT = 'o',
+        /**
+         * Symbol used for upper slanted edge magnets.
+         */
+        SLANTED_EDGE_UP_MAGNET = 'u',
+        /**
+         * Symbol used for lower slanted edge magnets.
+         */
+        SLANTED_EDGE_DOWN_MAGNET = 'd',
+        /**
+         * Symbol used for lower slanted edge magnets.
+         */
+        SLANTED_EDGE_UP_AND_DOWN_MAGNET = 's',
+        /**
+         * Symbol used for inverter magnets.
+         */
+        INVERTER_MAGNET = 'n',
+        /**
+         * Symbol used for cross-wire magnets.
+         */
+        CROSSWIRE_MAGNET = 'c',
+        /**
+         * Symbol used for coupler (fan-out) magnets.
+         */
+        FANOUT_COUPLER_MAGNET = 'f'
+    };
+
+    /**
+     * iNML cells do not have modes.
+     */
+    struct cell_mode
+    {};
+    /**
+     * Possible marks to be applied to a cell to change its type.
+     */
+    enum class cell_mark : uint8_t
+    {
+        EMPTY  = cell_type::EMPTY,
+        INPUT  = cell_type::INPUT,
+        OUTPUT = cell_type::OUTPUT
+    };
+
+    [[nodiscard]] static constexpr bool is_empty_cell(const cell_type& c) noexcept
+    {
+        return c == EMPTY;
+    }
+
+    [[nodiscard]] static constexpr bool is_normal_cell(const cell_type& c) noexcept
+    {
+        return c == NORMAL;
+    }
+
+    [[nodiscard]] static constexpr bool is_input_cell(const cell_type& c) noexcept
+    {
+        return c == INPUT;
+    }
+
+    [[nodiscard]] static constexpr bool is_output_cell(const cell_type& c) noexcept
+    {
+        return c == OUTPUT;
+    }
+
+    [[nodiscard]] static constexpr bool is_slanted_edge_up_magnet(const cell_type& c) noexcept
+    {
+        return c == SLANTED_EDGE_UP_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_slanted_edge_down_magnet(const cell_type& c) noexcept
+    {
+        return c == SLANTED_EDGE_DOWN_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_slanted_edge_up_and_down_magnet(const cell_type& c) noexcept
+    {
+        return c == SLANTED_EDGE_UP_AND_DOWN_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_slanted_edge_magnet(const cell_type& c) noexcept
+    {
+        return is_slanted_edge_up_magnet(c) || is_slanted_edge_down_magnet(c) || is_slanted_edge_up_and_down_magnet(c);
+    }
+
+    [[nodiscard]] static constexpr bool is_inverter_magnet(const cell_type& c) noexcept
+    {
+        return c == INVERTER_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_crosswire_magnet(const cell_type& c) noexcept
+    {
+        return c == CROSSWIRE_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_fanout_coupler_magnet(const cell_type& c) noexcept
+    {
+        return c == FANOUT_COUPLER_MAGNET;
+    }
+
+    [[nodiscard]] static constexpr bool is_normal_cell_mode([[maybe_unused]] const cell_mode& m) noexcept
+    {
+        return true;
+    }
+
+    /**
+     * Default width of a iNML cell in NMLib.
+     */
+    static constexpr uint64_t CELL_WIDTH = 50ul;
+    /**
+     * Default height of a iNML cell in NMLib.
+     */
+    static constexpr uint64_t CELL_HEIGHT = 130ul;
+    /**
+     * Height of a little iNML cell in NMLib.
+     */
+    static constexpr uint64_t LITTLE_CELL_HEIGHT = 110ul;
+    /**
+     * Height of a big iNML cell in NMLib.
+     */
+    static constexpr uint64_t BIG_CELL_HEIGHT = 150ul;
+    /**
+     * Default horizontal spacing between two iNML cells in NMLib.
+     */
+    static constexpr uint64_t CELL_HSPACE = 20ul;
+    /**
+     * Default vertical spacing between two iNML cells in NMLib.
+     */
+    static constexpr uint64_t CELL_VSPACE = 20ul;
+};
+
+/**
  * Silicon Dangling Bond (SiDB) technology implementation of the FCN concept.
  */
 struct sidb_technology
