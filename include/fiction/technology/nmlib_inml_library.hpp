@@ -50,6 +50,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         }
 
         const auto n = lyt.get_node(t);
+        std::cout << "nmlib_inml_library - set_up_gate - node: " << n << std::endl;
 
         if constexpr (fiction::has_is_fanout_v<GateLyt>)
         {
@@ -80,7 +81,15 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             }
         }
 
+        std::cout << "Going to determine_port_routing ..." << std::endl;
         const auto p = determine_port_routing(lyt, t);
+        for (auto ip : p.inp) {
+          std::cout << "nmlib_inml_library - set_up_gate - p inp: " << ip.x << " - " << ip.y << std::endl;
+        } 
+
+        for (auto op : p.out) {
+          std::cout << "nmlib_inml_library - set_up_gate - p out: " << op.x << " - " << op.y << std::endl;
+        } 
 
         try
         {
@@ -122,6 +131,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         }
         catch (const std::out_of_range&)
         {
+            std::cout << fmt::format("[e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
             throw unsupported_gate_orientation_exception(t, p);
         }
 
@@ -358,13 +368,17 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
     {
         auto fanout_fanout = false;
 
+        std::cout << "foreach_fanout - n: " << n << std::endl;
         lyt.foreach_fanout(n,
                            [&lyt, &fanout_fanout](const auto& fon)
                            {
+                               std::cout << "foreach_fanout - fon: " << fon << std::endl;
                                if constexpr (fiction::has_is_fanout_v<Lyt>)
                                {
+                                   std::cout << " -- Going to check if fon is fanout" << std::endl;
                                    if (lyt.is_fanout(fon))
                                    {
+                                        std::cout << "FON " << fon << " IS FANOUT" << std::endl;
                                        fanout_fanout = true;
                                        return false;  // exit function
                                    }
@@ -394,6 +408,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         // wires within the circuit
         if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
+            std::cout << "nmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -467,6 +482,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
+                std::cout << "nmlib_inml_library - determine_port_routing - node: " << n << " is a PO" << std::endl;
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -517,9 +533,11 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             // special case: PI determines input according to successor
             if (lyt.is_pi(n))
             {
+                std::cout << "nmlib_inml_library - determine_port_routing - node: " << n << " is a PI" << std::endl;
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
+                    std::cout << "HAS FANOUT FANOUT" << std::endl;
                     p.inp.emplace(0u, 3u);
                     p.out.emplace(3u, 3u);
 
@@ -528,29 +546,35 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                 // if output is north-eastern, input port is at (0,0)
                 if (lyt.has_north_eastern_outgoing_signal(t))
                 {
+                    std::cout << "HAS NORTH EASTERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 0u);
                 }
                 // if output is south-eastern, input port is at (0,2)
                 else if (lyt.has_south_eastern_outgoing_signal(t))
                 {
+                    std::cout << "HAS SOUTH EASTERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 2u);
                 }
             }
             // determine outgoing connector ports
             if (lyt.has_north_eastern_outgoing_signal(t))
             {
+                std::cout << "HAS NORTH EASTERN OUTGOING SIGNAL" << std::endl;
                 // special case: output port of AND, OR, MAJ is fixed at pos (3,1)
                 if (lyt.is_and(n) || lyt.is_or(n) || lyt.is_maj(n))
                 {
+                    std::cout << "IS AND || IS OR || IS MAJ" << std::endl;
                     p.out.emplace(3u, 1u);
                 }
                 else
                 {
+                    std::cout << "NOT -> (IS AND || IS OR || IS MAJ)" << std::endl;
                     p.out.emplace(3u, 0u);
                 }
             }
             if (lyt.has_south_eastern_outgoing_signal(t))
             {
+                std::cout << "HAS SOUTH EASTERN OUTGOING SIGNAL" << std::endl;
                 p.out.emplace(3u, 2u);
             }
         }
