@@ -83,6 +83,8 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
 
         std::cout << "Going to determine_port_routing ..." << std::endl;
         const auto p = determine_port_routing(lyt, t);
+        std::cout << "After determine_port_routing " << fmt::format(" ports {}", p) << std::endl;
+
         for (auto ip : p.inp) {
           std::cout << "nmlib_inml_library - set_up_gate - p inp: " << ip.x << " - " << ip.y << std::endl;
         } 
@@ -93,6 +95,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
 
         try
         {
+            std::cout << "set_up_gate - INSIDE TRY CATCH" << std::endl;
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
                 if (lyt.is_inv(n))
@@ -104,6 +107,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             {
                 if (lyt.is_buf(n))
                 {
+                    std::cout << "set_up_gate - PORT IS BUF" << std::endl;
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
@@ -111,6 +115,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                     }
 
                     auto wire = WIRE_MAP.at(p);
+                    // std::cout << "set_up_gate - Wire created: " << wire << std::endl;
 
                     if (lyt.is_pi(n))
                     {
@@ -131,9 +136,10 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         }
         catch (const std::out_of_range&)
         {
-            std::cout << fmt::format("[e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
+            std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
             throw unsupported_gate_orientation_exception(t, p);
         }
+        std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
 
         throw unsupported_gate_type_exception(t);
     }
@@ -376,6 +382,28 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                                if constexpr (fiction::has_is_fanout_v<Lyt>)
                                {
                                    std::cout << " -- Going to check if fon is fanout" << std::endl;
+
+                                  auto print_node_tile = [&lyt](auto const &nd) -> void {
+                                    FMTPRINT("\n-- Node Id", nd);
+                                    FMTPRINT("-- Node function", lyt.node_function(nd));
+                                    FMTPRINT("-- Node is_dead", lyt.is_dead(nd));
+                                    FMTPRINT("-- Node is fanout", lyt.is_fanout(nd));
+                                    FMTPRINT("-- Node tile", lyt.get_tile(nd));
+
+                                    // layout.foreach_fanout(nd, [&layout](const auto &fon) {
+                                    //   std::cout << " -- fon: " << fon;  
+                                    //   if constexpr (fc::has_is_fanout_v<gate_layout>) {
+                                    //     std::cout << "is not fanout" << std::endl;
+                                    //     if (layout.is_fanout(fon)) {
+                                    //       std::cout << " is fanout" << std::endl;
+                                    //     }
+                                    //   }
+                                    // });
+                                  };
+
+                                  LOG("\n\tGET NODES'S TILES \n");
+                                  lyt.foreach_node(print_node_tile);
+
                                    if (lyt.is_fanout(fon))
                                    {
                                         std::cout << "FON " << fon << " IS FANOUT" << std::endl;
@@ -408,7 +436,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         // wires within the circuit
         if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            std::cout << "nmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
+            std::cout << "\nnmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
