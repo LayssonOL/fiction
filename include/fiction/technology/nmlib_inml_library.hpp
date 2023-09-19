@@ -50,6 +50,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         }
 
         const auto n = lyt.get_node(t);
+      std::cout << "nmlib_inml_library - set_up_gate - tile: " << t << std::endl;
         std::cout << "nmlib_inml_library - set_up_gate - node: " << n << std::endl;
 
         if constexpr (fiction::has_is_fanout_v<GateLyt>)
@@ -108,23 +109,32 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                 if (lyt.is_buf(n))
                 {
                     std::cout << "set_up_gate - PORT IS BUF" << std::endl;
+                    const auto a = lyt.above(t);
+                    std::cout << a << " is above " << t << std::endl;
+                    const auto is_equal = t != a;
+                    std::cout << "T != a " << is_equal << std::endl;
+                    std::cout << "Is wire tile " << lyt.is_wire_tile(a) << std::endl;
+
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
                         return CROSSWIRE;
                     }
 
+                    std::cout << "Going to WIRE MAP" << std::endl;
                     auto wire = WIRE_MAP.at(p);
-                    // std::cout << "set_up_gate - Wire created: " << wire << std::endl;
+                    std::cout << "set_up_gate - Wire created from p" << std::endl;
 
                     if (lyt.is_pi(n))
                     {
+                        std::cout << "set_up_gate - n is PI from P" << std::endl;
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
 
                         wire = mark_cell(wire, inp_mark_pos, inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
                     {
+                        std::cout << "set_up_gate - n is PO from P" << std::endl;
                         const auto out_mark_pos = p.out.empty() ? opposite(*p.inp.begin()) : *p.out.begin();
 
                         wire = mark_cell(wire, out_mark_pos, inml_technology::cell_mark::OUTPUT);
@@ -374,39 +384,13 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
     {
         auto fanout_fanout = false;
 
-        std::cout << "foreach_fanout - n: " << n << std::endl;
         lyt.foreach_fanout(n,
                            [&lyt, &fanout_fanout](const auto& fon)
                            {
-                               std::cout << "foreach_fanout - fon: " << fon << std::endl;
                                if constexpr (fiction::has_is_fanout_v<Lyt>)
                                {
-                                   std::cout << " -- Going to check if fon is fanout" << std::endl;
-
-                                  auto print_node_tile = [&lyt](auto const &nd) -> void {
-                                    FMTPRINT("\n-- Node Id", nd);
-                                    FMTPRINT("-- Node function", lyt.node_function(nd));
-                                    FMTPRINT("-- Node is_dead", lyt.is_dead(nd));
-                                    FMTPRINT("-- Node is fanout", lyt.is_fanout(nd));
-                                    FMTPRINT("-- Node tile", lyt.get_tile(nd));
-
-                                    // layout.foreach_fanout(nd, [&layout](const auto &fon) {
-                                    //   std::cout << " -- fon: " << fon;  
-                                    //   if constexpr (fc::has_is_fanout_v<gate_layout>) {
-                                    //     std::cout << "is not fanout" << std::endl;
-                                    //     if (layout.is_fanout(fon)) {
-                                    //       std::cout << " is fanout" << std::endl;
-                                    //     }
-                                    //   }
-                                    // });
-                                  };
-
-                                  LOG("\n\tGET NODES'S TILES \n");
-                                  lyt.foreach_node(print_node_tile);
-
                                    if (lyt.is_fanout(fon))
                                    {
-                                        std::cout << "FON " << fon << " IS FANOUT" << std::endl;
                                        fanout_fanout = true;
                                        return false;  // exit function
                                    }
@@ -430,6 +414,8 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         port_list<port_position> p{};
 
         const auto n = lyt.get_node(t);
+        std::cout << "Node: " << n << std::endl;
+        std::cout << "Tile: " << t << std::endl;
 
         // NOLINTBEGIN(*-branch-clone)
 
@@ -572,13 +558,13 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                     return p;
                 }
                 // if output is north-eastern, input port is at (0,0)
-                if (lyt.has_north_eastern_outgoing_signal(t))
+                if (lyt.has_north_eastern_outgoing_signal(t) || lyt.has_eastern_outgoing_signal(t))
                 {
                     std::cout << "HAS NORTH EASTERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 0u);
                 }
                 // if output is south-eastern, input port is at (0,2)
-                else if (lyt.has_south_eastern_outgoing_signal(t))
+                else if (lyt.has_south_eastern_outgoing_signal(t) || lyt.has_southern_outgoing_signal(t))
                 {
                     std::cout << "HAS SOUTH EASTERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 2u);
