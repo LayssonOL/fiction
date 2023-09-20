@@ -46,17 +46,19 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         // crossing magnets are handled only in the ground layer
         if (lyt.is_crossing_layer(t))
         {
+            std::cout << "IS CROSSING LAYER" << std::endl;
             return EMPTY_GATE;
         }
 
         const auto n = lyt.get_node(t);
-      std::cout << "nmlib_inml_library - set_up_gate - tile: " << t << std::endl;
+        std::cout << "nmlib_inml_library - set_up_gate - tile: " << t << std::endl;
         std::cout << "nmlib_inml_library - set_up_gate - node: " << n << std::endl;
 
         if constexpr (fiction::has_is_fanout_v<GateLyt>)
         {
             if (lyt.is_fanout(n))
             {
+                std::cout << "IS FANOUT" << std::endl;
                 return COUPLER;
             }
         }
@@ -64,6 +66,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_and(n))
             {
+                std::cout << "IS AND" << std::endl;
                 return CONJUNCTION;
             }
         }
@@ -71,6 +74,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_or(n))
             {
+                std::cout << "IS OR" << std::endl;
                 return DISJUNCTION;
             }
         }
@@ -78,12 +82,13 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_maj(n))
             {
+                std::cout << "IS MAJ" << std::endl;
                 return MAJORITY;
             }
         }
 
-        std::cout << "Going to determine_port_routing ..." << std::endl;
         const auto p = determine_port_routing(lyt, t);
+
         std::cout << "After determine_port_routing " << fmt::format(" ports {}", p) << std::endl;
 
         for (auto ip : p.inp) {
@@ -96,11 +101,11 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
 
         try
         {
-            std::cout << "set_up_gate - INSIDE TRY CATCH" << std::endl;
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
                 if (lyt.is_inv(n))
                 {
+                    std::cout << "\nTILE IS INVERTER" << std::endl;
                     return INVERTER_MAP.at(p);
                 }
             }
@@ -108,33 +113,29 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             {
                 if (lyt.is_buf(n))
                 {
-                    std::cout << "set_up_gate - PORT IS BUF" << std::endl;
                     const auto a = lyt.above(t);
-                    std::cout << a << " is above " << t << std::endl;
                     const auto is_equal = t != a;
-                    std::cout << "T != a " << is_equal << std::endl;
-                    std::cout << "Is wire tile " << lyt.is_wire_tile(a) << std::endl;
 
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
+                        std::cout << "TILE IS CROSSWIRE" << std::endl;
                         return CROSSWIRE;
                     }
 
-                    std::cout << "Going to WIRE MAP" << std::endl;
                     auto wire = WIRE_MAP.at(p);
                     std::cout << "set_up_gate - Wire created from p" << std::endl;
 
                     if (lyt.is_pi(n))
                     {
-                        std::cout << "set_up_gate - n is PI from P" << std::endl;
+                        std::cout << "set_up_gate - n is PI" << std::endl;
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
 
                         wire = mark_cell(wire, inp_mark_pos, inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
                     {
-                        std::cout << "set_up_gate - n is PO from P" << std::endl;
+                        std::cout << "set_up_gate - n is PO" << std::endl;
                         const auto out_mark_pos = p.out.empty() ? opposite(*p.inp.begin()) : *p.out.begin();
 
                         wire = mark_cell(wire, out_mark_pos, inml_technology::cell_mark::OUTPUT);
@@ -422,29 +423,35 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         // wires within the circuit
         if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            std::cout << "\nnmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
+            std::cout << "nmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
+                std::cout << "HAS NORTHERN INCOMING SIGNAL" << std::endl;
                 p.inp.emplace(0u, 0u);
             }
             else if (lyt.has_southern_incoming_signal(t))
             {
+                std::cout << "HAS SOUTHERN INCOMING SIGNAL" << std::endl;
                 p.inp.emplace(0u, 3u);
             }
             else if (lyt.has_north_western_incoming_signal(t))
             {
+                std::cout << "HAS NORTH WESTERN INCOMING SIGNAL" << std::endl;
                 p.inp.emplace(0u, 0u);
             }
             else if (lyt.has_south_western_incoming_signal(t))
             {
+                std::cout << "HAS SOUTH WESTERN INCOMING SIGNAL" << std::endl;
                 // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
+                    std::cout << "HAS AND OR MAJ FANIN" << std::endl;
                     p.inp.emplace(0u, 3u);
                 }
                 else
                 {
+                    std::cout << "DONT HAS AND OR MAJ FANIN" << std::endl;
                     p.inp.emplace(0u, 2u);
                 }
             }
@@ -456,33 +463,41 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
             // outputs
             if (lyt.has_northern_outgoing_signal(t))
             {
+                std::cout << "HAS NORTHERN OUTGOING SIGNAL" << std::endl;
                 // special case: if northern tile is MAJ, output port is at (1,0)
                 if (lyt.is_maj(lyt.get_node(lyt.north(t))))
                 {
+                    std::cout << "NORTHERN TILE IS MAJ" << std::endl;
                     p.out.emplace(1u, 0u);
                 }
                 else
                 {
+                    std::cout << "NORTHERN TILE IS NOT MAJ" << std::endl;
                     p.out.emplace(3u, 0u);
                 }
             }
             else if (lyt.has_southern_outgoing_signal(t))
             {
+                std::cout << "HAS SOUTHERN OUTGOING SIGNAL" << std::endl;
                 p.out.emplace(3u, 3u);
             }
             else if (lyt.has_north_eastern_outgoing_signal(t))
             {
+                std::cout << "HAS NORTHERN EASTERN OUTGOING SIGNAL" << std::endl;
                 p.out.emplace(3u, 0u);
             }
             else if (lyt.has_south_eastern_outgoing_signal(t))
             {
+                std::cout << "HAS SOUTH EASTERN OUTGOING SIGNAL" << std::endl;
                 // special case: if successor is a fanout, output port is at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
+                    std::cout << "HAS FANOUT FANOUT" << std::endl;
                     p.out.emplace(3u, 3u);
                 }
                 else
                 {
+                    std::cout << "HAS NOT FANOUT FANOUT" << std::endl;
                     p.out.emplace(3u, 2u);
                 }
             }
@@ -500,9 +515,19 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
+                    std::cout << "HAS AND OR MAJ FANIN" << std::endl;
                     // but only if that gate is SW of the PO
                     if (lyt.has_south_western_incoming_signal(t))
                     {
+                        std::cout << "HAS SOUTH WESTERN INCOMING SIGNAL" << std::endl;
+                        p.inp.emplace(0u, 3u);
+                        p.out.emplace(3u, 3u);
+
+                        return p;
+                    }
+                    if (lyt.has_western_incoming_signal(t))
+                    {
+                        std::cout << "HAS WESTERN INCOMING SIGNAL" << std::endl;
                         p.inp.emplace(0u, 3u);
                         p.out.emplace(3u, 3u);
 
@@ -512,11 +537,18 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                 // if input is north-western, output port is at (3,0)
                 else if (lyt.has_north_western_incoming_signal(t))
                 {
+                    std::cout << "HAS NORTH WESTERN INCOMING SIGNAL" << std::endl;
                     p.out.emplace(3u, 0u);
                 }
                 // if input is south-western, output port is at (3,2)
                 else if (lyt.has_south_western_incoming_signal(t))
                 {
+                    std::cout << "HAS SOUTH WESTERN INCOMING SIGNAL" << std::endl;
+                    p.out.emplace(3u, 2u);
+                }
+                else if (lyt.has_western_incoming_signal(t))
+                {
+                    std::cout << "HAS WESTERN INCOMING SIGNAL" << std::endl;
                     p.out.emplace(3u, 2u);
                 }
             }
@@ -558,15 +590,23 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                     return p;
                 }
                 // if output is north-eastern, input port is at (0,0)
-                if (lyt.has_north_eastern_outgoing_signal(t) || lyt.has_eastern_outgoing_signal(t))
+                if (lyt.has_north_eastern_outgoing_signal(t))
                 {
                     std::cout << "HAS NORTH EASTERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 0u);
                 }
+                else if (lyt.has_eastern_outgoing_signal(t)) {
+                    std::cout << "HAS EASTERN OUTGOING SIGNAL" << std::endl;
+                    p.inp.emplace(0u, 0u);
+                }
                 // if output is south-eastern, input port is at (0,2)
-                else if (lyt.has_south_eastern_outgoing_signal(t) || lyt.has_southern_outgoing_signal(t))
+                else if (lyt.has_south_eastern_outgoing_signal(t))
                 {
                     std::cout << "HAS SOUTH EASTERN OUTGOING SIGNAL" << std::endl;
+                    p.inp.emplace(0u, 2u);
+                }
+                else if (lyt.has_southern_outgoing_signal(t)) {
+                    std::cout << "HAS SOUTHERN OUTGOING SIGNAL" << std::endl;
                     p.inp.emplace(0u, 2u);
                 }
             }
@@ -577,12 +617,12 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                 // special case: output port of AND, OR, MAJ is fixed at pos (3,1)
                 if (lyt.is_and(n) || lyt.is_or(n) || lyt.is_maj(n))
                 {
-                    std::cout << "IS AND || IS OR || IS MAJ" << std::endl;
+                    std::cout << " IS AND || IS OR || IS MAJ" << std::endl;
                     p.out.emplace(3u, 1u);
                 }
                 else
                 {
-                    std::cout << "NOT -> (IS AND || IS OR || IS MAJ)" << std::endl;
+                    std::cout << " NOT -> (IS AND || IS OR || IS MAJ)" << std::endl;
                     p.out.emplace(3u, 0u);
                 }
             }

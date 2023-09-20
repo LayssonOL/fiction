@@ -50,7 +50,7 @@ class apply_gate_library_impl
         gate_lyt.foreach_node(
             [&, this](const auto& n, [[maybe_unused]] auto i)
             {
-                std::cout << "apply_gate_library - run - n: " << n << std::endl;
+                std::cout << "\n\napply_gate_library - run - n: " << n << std::endl;
                 // const auto tile
                 if (!gate_lyt.is_constant(n))
                 {
