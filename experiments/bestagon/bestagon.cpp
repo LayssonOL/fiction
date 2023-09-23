@@ -2,7 +2,7 @@
 // Created by marcel on 16.11.21.
 //
 
-#if (FICTION_Z3_SOLVER)
+// #if (FICTION_Z3_SOLVER)
 
 #include "fiction_experiments.hpp"
 

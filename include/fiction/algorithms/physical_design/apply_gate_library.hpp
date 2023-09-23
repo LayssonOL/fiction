@@ -50,18 +50,15 @@ class apply_gate_library_impl
         gate_lyt.foreach_node(
             [&, this](const auto& n, [[maybe_unused]] auto i)
             {
-                std::cout << "\n\napply_gate_library - run - n: " << n << std::endl;
                 // const auto tile
                 if (!gate_lyt.is_constant(n))
                 {
                     const auto t = gate_lyt.get_tile(n);
-                    std::cout << "apply_gate_library  run - t: " << t << std::endl;
 
                     // retrieve the top-leftmost cell in tile t
                     const auto c =
                         relative_to_absolute_cell_position<GateLibrary::gate_x_size(), GateLibrary::gate_y_size(),
                                                            GateLyt, CellLyt>(gate_lyt, t, cell<CellLyt>{0, 0});
-                    std::cout << "apply_gate_library - run - c: " << c << std::endl;
 
                     assign_gate(c, GateLibrary::set_up_gate(gate_lyt, t), n);
                 }

@@ -4,7 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#if (FICTION_Z3_SOLVER)
+// #if (FICTION_Z3_SOLVER)
 
 #include "utils/blueprints/network_blueprints.hpp"
 #include "utils/equivalence_checking_utils.hpp"
