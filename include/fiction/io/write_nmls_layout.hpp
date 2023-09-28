@@ -188,7 +188,7 @@ class write_nmls_layout_impl
         if (!has_border_io_pins())
         {
             throw std::invalid_argument(
-                "the iNML layout does not fulfill all requirements to be written as a QCC file because it does not "
+                "the iNML layout does not fulfill all requirements to be written as a NMLS file because it does not "
                 "have designated I/O pins or they are not routed to the layout's borders");
         }
 
@@ -311,6 +311,7 @@ class write_nmls_layout_impl
 
     void write_header()
     {
+      std::cout << "\nWritting HEADER" << std::endl;
       os << fmt::format(nmls::NMLS_HEADER, 
                         nmls::TECHNOLOGY, nmls::SIMULATION_MODE, nmls::LLG_ENGINE_METHOD, 
                         nmls::SIMULATION_EXECUTIONS_QNTD, nmls::REPORT_STEP, nmls::SATURATION_MAGNETIZATION,
@@ -321,8 +322,9 @@ class write_nmls_layout_impl
 
     void write_dimensions()
     {
-      std::cout << "Bounding Box min: " << this->bb.get_min() << " - max: " << this->bb.get_max() << std::endl; 
-      std::cout << "Bounding Box x_size: " << this->bb.get_x_size() << " - y_size: " << this->bb.get_y_size() << std::endl; 
+      std::cout << "\nWritting DIMENSIONS" << std::endl;
+      std::cout << "\nBounding Box min: " << this->bb.get_min() << " - max: " << this->bb.get_max() << std::endl; 
+      std::cout << "\nBounding Box x_size: " << this->bb.get_x_size() << " - y_size: " << this->bb.get_y_size() << std::endl; 
       os << fmt::format( nmls::DIMENSIONS, 
         "3000", "4000",
         nmls::MIN_CELL_WIDTH, nmls::MIN_CELL_HEIGHT,
@@ -332,6 +334,7 @@ class write_nmls_layout_impl
 
     void write_entity()
     {
+        std::cout << "\nWritting ENTITY" << std::endl;
         os << nmls::OPEN_ENTITY;
 
         for (const auto& pi : sorted_pi_list)
