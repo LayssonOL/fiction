@@ -46,19 +46,19 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         // crossing magnets are handled only in the ground layer
         if (lyt.is_crossing_layer(t))
         {
-            std::cout << "IS CROSSING LAYER" << std::endl;
+            std::cout << " ** IS CROSSING LAYER ** " << std::endl;
             return EMPTY_GATE;
         }
 
         const auto n = lyt.get_node(t);
-        std::cout << "nmlib_inml_library - set_up_gate - tile: " << t << std::endl;
+        std::cout << "\nnmlib_inml_library - set_up_gate - tile: " << t << std::endl;
         std::cout << "nmlib_inml_library - set_up_gate - node: " << n << std::endl;
 
         if constexpr (fiction::has_is_fanout_v<GateLyt>)
         {
             if (lyt.is_fanout(n))
             {
-                std::cout << "IS FANOUT" << std::endl;
+                std::cout << " ** IS FANOUT ** " << std::endl;
                 return COUPLER;
             }
         }
@@ -66,7 +66,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_and(n))
             {
-                std::cout << "IS AND" << std::endl;
+                std::cout << " ** IS AND ** " << std::endl;
                 return CONJUNCTION;
             }
         }
@@ -74,7 +74,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_or(n))
             {
-                std::cout << "IS OR" << std::endl;
+                std::cout << " ** IS OR ** " << std::endl;
                 return DISJUNCTION;
             }
         }
@@ -82,7 +82,7 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {
             if (lyt.is_maj(n))
             {
-                std::cout << "IS MAJ" << std::endl;
+                std::cout << " ** IS MAJ ** " << std::endl;
                 return MAJORITY;
             }
         }
@@ -91,21 +91,13 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
 
         std::cout << "After determine_port_routing " << fmt::format(" ports {}", p) << std::endl;
 
-        for (auto ip : p.inp) {
-          std::cout << "nmlib_inml_library - set_up_gate - p inp: " << ip.x << " - " << ip.y << std::endl;
-        } 
-
-        for (auto op : p.out) {
-          std::cout << "nmlib_inml_library - set_up_gate - p out: " << op.x << " - " << op.y << std::endl;
-        } 
-
         try
         {
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
                 if (lyt.is_inv(n))
                 {
-                    std::cout << "\nTILE IS INVERTER" << std::endl;
+                    std::cout << " ** TILE IS INVERTER ** " << std::endl;
                     return INVERTER_MAP.at(p);
                 }
             }
@@ -119,12 +111,21 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        std::cout << "TILE IS CROSSWIRE" << std::endl;
+                        std::cout << " ** TILE IS CROSSWIRE ** " << std::endl;
                         return CROSSWIRE;
                     }
 
                     auto wire = WIRE_MAP.at(p);
                     std::cout << "set_up_gate - Wire created from p" << std::endl;
+
+                    std::cout << " ## WIRE " << std::endl;
+                    for (auto row : wire) {
+                      std::cout << "ROW: ";
+                      for (auto el : row) {
+                        std::cout << " " << el;
+                      }
+                      std::cout << "\n" << std::endl;
+                    }
 
                     if (lyt.is_pi(n))
                     {
@@ -660,10 +661,11 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
 
     static constexpr const fcn_gate CONJUNCTION{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' '},
-        {' ', 'x', 'x', 'x'},
-        {' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', 'x', 'x', 'x', 'x'},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '}
     }})};
 
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
@@ -770,6 +772,15 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '}
     }})};
 
+    static constexpr const fcn_gate MIDDLER_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {'x', 'x', 'x', 'x', 'x'},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '}
+    }})};
+
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {'x', ' ', ' ', ' ', ' '},
@@ -842,9 +853,9 @@ class nmlib_inml_library : public fcn_gate_library<inml_technology, 5, 5>
         {{{port_position(0, 2)}, {port_position(3, 2)}}, LOWER_WIRE},
         {{{}, {port_position(3, 2)}}, LOWER_WIRE},
         {{{port_position(0, 2)}, {}}, LOWER_WIRE},
-        {{{port_position(0, 0)}, {port_position(3, 0)}}, UPPER_WIRE},
-        {{{}, {port_position(3, 0)}}, UPPER_WIRE},
-        {{{port_position(0, 0)}, {}}, UPPER_WIRE},
+        {{{port_position(0, 0)}, {port_position(3, 0)}}, MIDDLER_WIRE},
+        {{{}, {port_position(3, 0)}}, MIDDLER_WIRE},
+        {{{port_position(0, 0)}, {}}, MIDDLER_WIRE},
         {{{port_position(0, 3)}, {port_position(3, 3)}}, rotate_180(UPPER_WIRE)},
         {{{}, {port_position(3, 3)}}, rotate_180(UPPER_WIRE)},
         {{{port_position(0, 3)}, {}}, rotate_180(UPPER_WIRE)},

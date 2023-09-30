@@ -246,11 +246,14 @@ class write_nmls_layout_impl
     [[nodiscard]] bool has_border_io_pins() const noexcept
     {
         auto all_border_pins = true;
+        std::cout << "\nBounding box min X: " << bb.get_min().x << " - Y: " << bb.get_min().y << std::endl;
+        std::cout << "Bounding box max X: " << bb.get_max().x << " - Y: " << bb.get_max().y << std::endl;
 
         // check PI border cells
         lyt.foreach_pi(
             [this, &all_border_pins](const auto& pi)
             {
+                std::cout << "PI: " << pi << std::endl;
                 if (bb_x(pi) != 0)
                 {
                     all_border_pins = false;
@@ -262,6 +265,7 @@ class write_nmls_layout_impl
         lyt.foreach_po(
             [this, &all_border_pins](const auto& po)
             {
+                std::cout << "PO: " << po << std::endl;
                 if (bb_x(po) != lyt.x())
                 {
                     all_border_pins = false;
