@@ -8,7 +8,7 @@
 
 #include "fiction/layouts/bounding_box.hpp"
 #include "fiction/technology/cell_technologies.hpp"
-#include "fiction/technology/magcad_magnet_count.hpp"
+#include "fiction/technology/nmlsim_magnet_count.hpp"
 #include "fiction/traits.hpp"
 #include "fiction/types.hpp"
 #include "utils/version_info.hpp"
@@ -160,11 +160,11 @@ inline constexpr const char* PROPERTY_LENGTH      = "length";
 inline constexpr const std::array<const char*, 6> COMPONENTS{"Magnet", "Coupler",  "Cross Wire",
                                                              "And",    "Inverter", "Or"};
 
-static const std::unordered_map<inml_technology::cell_type, uint8_t> COMPONENT_SELECTOR{
-    {inml_technology::cell_type::NORMAL, 0},           {inml_technology::cell_type::INPUT, 0},
-    {inml_technology::cell_type::OUTPUT, 0},           {inml_technology::cell_type::FANOUT_COUPLER_MAGNET, 1},
-    {inml_technology::cell_type::CROSSWIRE_MAGNET, 2}, {inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET, 3},
-    {inml_technology::cell_type::INVERTER_MAGNET, 4},  {inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET, 5},
+static const std::unordered_map<nmlib_inml_technology::cell_type, uint8_t> COMPONENT_SELECTOR{
+    {nmlib_inml_technology::cell_type::NORMAL, 0},           {nmlib_inml_technology::cell_type::INPUT, 0},
+    {nmlib_inml_technology::cell_type::OUTPUT, 0},           {nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET, 1},
+    {nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET, 2}, {nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET, 3},
+    {nmlib_inml_technology::cell_type::INVERTER_MAGNET, 4},  {nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET, 5},
 };
 
 }  // namespace nmls
@@ -178,7 +178,7 @@ class write_nmls_layout_impl
             bb{lyt},
             sorted_pi_list{sorted_pis()},
             sorted_po_list{sorted_pos()},
-            num_magnets{magcad_magnet_count(lyt)},
+            num_magnets{nmlsim_magnet_count(lyt)},
             os{s},
             ps{std::move(p)}
     {}
@@ -266,6 +266,7 @@ class write_nmls_layout_impl
             [this, &all_border_pins](const auto& po)
             {
                 std::cout << "PO: " << po << std::endl;
+                std::cout << "Lyt X: " << lyt.x() << std::endl;
                 if (bb_x(po) != lyt.x())
                 {
                     all_border_pins = false;
@@ -383,14 +384,14 @@ class write_nmls_layout_impl
 
                 // if an AND or an OR structure is encountered, the next two magnets in southern direction need to
                 // be skipped
-                if (type == inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET ||
-                    type == inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET)
+                if (type == nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET ||
+                    type == nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET)
                 {
                     skip.insert({c.x, c.y + 1});
                     skip.insert({c.x, c.y + 2});
                 }
                 // if a coupler is encountered, skip all magnets relating to the fan-out structure
-                else if (type == inml_technology::cell_type::FANOUT_COUPLER_MAGNET)
+                else if (type == nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET)
                 {
                     skip.insert({c.x, c.y + 1});
                     skip.insert({c.x, c.y + 2});
@@ -398,7 +399,7 @@ class write_nmls_layout_impl
                     skip.insert({c.x + 1, c.y + 2});
                 }
                 // if a cross wire is encountered, skip all magnets relating to the crossing structure
-                else if (type == inml_technology::cell_type::CROSSWIRE_MAGNET)
+                else if (type == nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET)
                 {
                     skip.insert({c.x + 2, c.y});
                     skip.insert({c.x, c.y + 2});
@@ -407,7 +408,7 @@ class write_nmls_layout_impl
                 }
                 // inverters are single structures taking up 4 magnets in the library, so skip the next 3 if
                 // encountered one
-                else if (type == inml_technology::cell_type::INVERTER_MAGNET)
+                else if (type == nmlib_inml_technology::cell_type::INVERTER_MAGNET)
                 {
                     skip.insert({c.x + 1, c.y});
                     skip.insert({c.x + 2, c.y});
@@ -425,7 +426,7 @@ class write_nmls_layout_impl
 
                 os << fmt::format(nmls::LAYOUT_ITEM_PROPERTY, nmls::PROPERTY_PHASE, lyt.get_clock_number(c));
 
-                if (type == inml_technology::cell_type::INVERTER_MAGNET)
+                if (type == nmlib_inml_technology::cell_type::INVERTER_MAGNET)
                 {
                     os << fmt::format(nmls::LAYOUT_ITEM_PROPERTY, nmls::PROPERTY_LENGTH, 4);
                 }
@@ -454,7 +455,7 @@ template <typename Lyt>
 void write_nmls_layout(const Lyt& lyt, std::ostream& os, write_nmls_layout_params ps = {})
 {
     static_assert(is_cell_level_layout_v<Lyt>, "Lyt is not a cell-level layout");
-    static_assert(has_inml_technology_v<Lyt>, "Lyt must be an iNML layout");
+    static_assert(has_nmlib_inml_technology_v<Lyt>, "Lyt must be an iNML layout");
 
     detail::write_nmls_layout_impl p{lyt, os, ps};
 

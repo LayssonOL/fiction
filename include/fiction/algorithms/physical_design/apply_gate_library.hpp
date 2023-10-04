@@ -5,6 +5,7 @@
 #ifndef FICTION_APPLY_GATE_LIBRARY_HPP
 #define FICTION_APPLY_GATE_LIBRARY_HPP
 
+#include "fiction/technology/nmlib_inml_library.hpp"
 #include "fiction/technology/inml_topolinano_library.hpp"
 #include "fiction/technology/qca_one_library.hpp"
 #include "fiction/technology/sidb_bestagon_library.hpp"
@@ -100,6 +101,7 @@ class apply_gate_library_impl
                 const cell<CellLyt> pos{start_x + x, start_y + y, layer};
                 const auto          type{g[y][x]};
 
+
                 if (!technology<CellLyt>::is_empty_cell(type))
                 {
                     cell_lyt.assign_cell_type(pos, type);
@@ -120,8 +122,8 @@ class apply_gate_library_impl
 /**
  * Applies a gate library to a given gate-level layout and, thereby, creates and returns a cell-level layout. The gate
  * library type should provide all functions specified in fcn_gate_library. It is, thus, easiest to extend
- * fcn_gate_library to implement a new gate library. Examples are `qca_one_library`, `inml_topolinano_library`, and
- * `sidb_bestagon_library`.
+ * fcn_gate_library to implement a new gate library. Examples are `qca_one_library`, `inml_topolinano_library`,
+ * `sidb_bestagon_library` and `nmlib_inml_library`.
  *
  * May pass through, and thereby throw, an `unsupported_gate_type_exception` or an
  * `unsupported_gate_orientation_exception`.
