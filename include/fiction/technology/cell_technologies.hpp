@@ -300,13 +300,21 @@ struct nmlib_inml_technology
          */
         OUTPUT = 'o',
         /**
-         * Symbol used for upper slanted edge magnets.
+         * Symbol used for upper right slanted edge magnets.
          */
         SLANTED_EDGE_UP_MAGNET = 'u',
         /**
-         * Symbol used for lower slanted edge magnets.
+         * Symbol used for upper left slanted edge magnets.
+         */
+        // SLANTED_EDGE_UP_MAGNET = 'r',
+        /**
+         * Symbol used for lower right slanted edge magnets.
          */
         SLANTED_EDGE_DOWN_MAGNET = 'd',
+        /**
+         * Symbol used for lower left slanted edge magnets.
+         */
+        // SLANTED_EDGE_DOWN_MAGNET = 'D',
         /**
          * Symbol used for lower slanted edge magnets.
          */
