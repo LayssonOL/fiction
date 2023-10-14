@@ -5,8 +5,8 @@
 #ifndef FICTION_APPLY_GATE_LIBRARY_HPP
 #define FICTION_APPLY_GATE_LIBRARY_HPP
 
-#include "fiction/technology/nmlib_inml_library.hpp"
 #include "fiction/technology/inml_topolinano_library.hpp"
+#include "fiction/technology/nmlib_inml_library.hpp"
 #include "fiction/technology/qca_one_library.hpp"
 #include "fiction/technology/sidb_bestagon_library.hpp"
 #include "fiction/traits.hpp"
@@ -100,7 +100,6 @@ class apply_gate_library_impl
             {
                 const cell<CellLyt> pos{start_x + x, start_y + y, layer};
                 const auto          type{g[y][x]};
-
 
                 if (!technology<CellLyt>::is_empty_cell(type))
                 {
