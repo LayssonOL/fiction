@@ -207,9 +207,6 @@ class write_nmls_layout_impl
         write_phases_section();
         write_zones_section();
         write_magnets_section();
-
-        // close component block and flush the file
-        os << nmls::CLOSE_QCA_COMPONENT << std::flush;
     }
 
   private:
