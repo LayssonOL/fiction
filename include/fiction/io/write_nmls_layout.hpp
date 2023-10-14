@@ -52,15 +52,15 @@ namespace detail
 
 namespace nmls
 {
-// Simulation Params {{{
+// NMLS_HEADER - Simulation Params {{{
 // 2 engines: LLG and Behaviour
 inline constexpr const char* TECHNOLOGY = "LLG";
 
 // There are 4 simulationMode: exaustive, direct, repetitive and verbose
 inline constexpr const char* SIMULATION_MODE = "verbose";
 
-// There are two possible different methods for the LLG engine, the RK4 and the RKW2 - Runge Kutta 4th order and Runge Kutta Weak 2nd order
-// Be mindfull that the RK4 method disconsiders the temperature
+// There are two possible different methods for the LLG engine, the RK4 and the RKW2 - Runge Kutta 4th order and Runge
+// Kutta Weak 2nd order Be mindfull that the RK4 method disconsiders the temperature
 inline constexpr const char* LLG_ENGINE_METHOD = "RK4";
 
 // The number of simulations to be done in the repetitive mode
@@ -75,7 +75,8 @@ inline constexpr const char* ALPHA = "0.05";
 // Saturation Magnetization in A/m
 inline constexpr const char* SATURATION_MAGNETIZATION = "800000";
 
-// Temperature in K. Be mindfull that the RK-Weak order 2.0 (RKW2) is used for T > 0 and the RK of fourth order (RK4) for T == 0
+// Temperature in K. Be mindfull that the RK-Weak order 2.0 (RKW2) is used for T > 0 and the RK of fourth order (RK4)
+// for T == 0
 inline constexpr const char* TEMPERATURE = "300";
 
 // Discretization of time in nanoseconds. It's highly recommended using very low timeStep
@@ -85,7 +86,7 @@ inline constexpr const char* TIME_STEP = "0.001";
 inline constexpr const char* SIMULATION_TIME = "70";
 
 // Properties for the heavy material for spin hall effect
-inline constexpr const char* SPIN_ANGLE = "0.4";
+inline constexpr const char* SPIN_ANGLE           = "0.4";
 inline constexpr const char* SPIN_DIFUSION_LENGTH = "3.5";
 
 // Thickness in nanometers
@@ -95,39 +96,44 @@ inline constexpr const char* THICKNESS = "5";
 inline constexpr const char* NEIGHBORHOOD_RATIO = "300";
 
 // Composition Sequence:
-//TECHNOLOGY;SIMULATION_MODE; LLG_ENGINE_METHOD; SIMULATION_EXECUTIONS_QNTD; REPORT_STEP; ALPHA; SATURATION_MAGNETIZATION;
-//TEMPERATURE; TIME_STEP; SIMULATION_TIME; SPIN_ANGLE; SPIN_DIFUSION_LENGTH; THICKNESS; NEIGHBORHOOD_RATIO
+// TECHNOLOGY;SIMULATION_MODE; LLG_ENGINE_METHOD; SIMULATION_EXECUTIONS_QNTD; REPORT_STEP; ALPHA;
+// SATURATION_MAGNETIZATION; TEMPERATURE; TIME_STEP; SIMULATION_TIME; SPIN_ANGLE; SPIN_DIFUSION_LENGTH; THICKNESS;
+// NEIGHBORHOOD_RATIO
 inline constexpr const char* NMLS_HEADER = "{};{};{};{};{};{};{};{};{};{};{};{};{};{};";
 // }}}
 
-
-// Dimension Constants {{{
+// NMLS - Dimension Constants {{{
 //
-inline constexpr const char* MIN_CELL_WIDTH = "10";
-inline constexpr const char* MIN_CELL_HEIGHT = "10";
+inline constexpr const char* MIN_CELL_WIDTH            = "10";
+inline constexpr const char* MIN_CELL_HEIGHT           = "10";
 inline constexpr const char* MAGNET_CENTERS_Y_DISTANCE = "170";
 inline constexpr const char* MAGNET_CENTERS_X_DISTANCE = "70";
 
 // Composition Sequence:
-// SUBSTRATE_HEIGHT, SUBSTRATE_WIDTH, MIN_CELL_HEIGHT, MIN_CELL_WIDTH, MAGNET_CENTERS_X_DISTANCE, MAGNET_CENTERS_Y_DISTANCE
+// SUBSTRATE_HEIGHT, SUBSTRATE_WIDTH, MIN_CELL_HEIGHT, MIN_CELL_WIDTH, MAGNET_CENTERS_X_DISTANCE,
+// MAGNET_CENTERS_Y_DISTANCE
 inline constexpr const char* DIMENSIONS = "{},{},{},{},{},{},";
 // }}}
 
-
-inline constexpr const char* PHASES_SECTION = 
-  "Phases\nreset;0,0,0;300,0,0;0,0,0;0,0,0;5\nrelax;300,0,0;300,0,0;0,0,0;0,0,0;5 \
+// PHASES_SECTION {{{
+//
+inline constexpr const char* PHASES_SECTION =
+    "Phases\nreset;0,0,0;300,0,0;0,0,0;0,0,0;5\nrelax;300,0,0;300,0,0;0,0,0;0,0,0;5 \
   \nswitch;300,0,0;0,0,0;0,0,0;0,0,0;5\nhold;0,0,0;0,0,0;0,0,0;0,0,0;5";
+// }}}
 
-inline constexpr const char* ZONES_SECTION = 
-  "Zones\n0;reset;relax;switch;hold;-16777216\n1;hold;reset;relax;switch;-30208\n2;switch;hold;reset;relax;-14757932 \
+// ZONES SECTION {{{
+//
+inline constexpr const char* ZONES_SECTION =
+    "Zones\n0;reset;relax;switch;hold;-16777216\n1;hold;reset;relax;switch;-30208\n2;switch;hold;reset;relax;-14757932 \
   \n3;relax;switch;hold;reset;-11206444\n4;relax;switch;relax;switch;-11522794";
+// }}}
 
 inline constexpr const char* MAGNETS_SECTION_HEADER = "Magnets\n{}";
 
 // Magnet Specs {{{
 // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;0;0;pos_x,pos_y;color_code
-inline constexpr const char* MAGNET_SPECS = 
-  "Magnet_{};{};{};{};{};{};{};{};{};{};{};{}";
+inline constexpr const char* MAGNET_SPECS = "Magnet_{};{};{};{};{};{};{};{};{};{};{};{}";
 // }}}
 
 inline constexpr const char* VERSION_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -161,10 +167,14 @@ inline constexpr const std::array<const char*, 6> COMPONENTS{"Magnet", "Coupler"
                                                              "And",    "Inverter", "Or"};
 
 static const std::unordered_map<nmlib_inml_technology::cell_type, uint8_t> COMPONENT_SELECTOR{
-    {nmlib_inml_technology::cell_type::NORMAL, 0},           {nmlib_inml_technology::cell_type::INPUT, 0},
-    {nmlib_inml_technology::cell_type::OUTPUT, 0},           {nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET, 1},
-    {nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET, 2}, {nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET, 3},
-    {nmlib_inml_technology::cell_type::INVERTER_MAGNET, 4},  {nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET, 5},
+    {nmlib_inml_technology::cell_type::NORMAL, 0},
+    {nmlib_inml_technology::cell_type::INPUT, 0},
+    {nmlib_inml_technology::cell_type::OUTPUT, 0},
+    {nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET, 1},
+    {nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET, 2},
+    {nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET, 3},
+    {nmlib_inml_technology::cell_type::INVERTER_MAGNET, 4},
+    {nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET, 5},
 };
 
 }  // namespace nmls
@@ -194,9 +204,9 @@ class write_nmls_layout_impl
 
         write_header();
         write_dimensions();
-        write_entity();
-        write_components();
-        write_layout();
+        write_phases_section();
+        write_zones_section();
+        write_magnets_section();
 
         // close component block and flush the file
         os << nmls::CLOSE_QCA_COMPONENT << std::flush;
@@ -259,7 +269,7 @@ class write_nmls_layout_impl
                     all_border_pins = false;
                     return false;  // break iteration
                 }
-                return true;       // keep iterating
+                return true;  // keep iterating
             });
         // check PO border cells
         lyt.foreach_po(
@@ -272,7 +282,7 @@ class write_nmls_layout_impl
                     all_border_pins = false;
                     return false;  // break iteration
                 }
-                return true;       // keep iterating
+                return true;  // keep iterating
             });
 
         return all_border_pins;
@@ -314,53 +324,47 @@ class write_nmls_layout_impl
         return fmt::format("{0:<020}13{0:<020}37{0:<020}", hash_fragment);
     }
 
+    [[nodiscard]] int get_cell_specs_str(const auto& cell, auto& idx) const
+    {
+        // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;0;0;pos_x,pos_y;color_code
+        std::string cell_str{""};
+        cell_str += "Magnet_" + idx + ";" + lyt.get_cell_type(cell);
+        idx++;
+        return cell_str;
+    }
+
     void write_header()
     {
-      std::cout << "\nWritting HEADER" << std::endl;
-      os << fmt::format(nmls::NMLS_HEADER, 
-                        nmls::TECHNOLOGY, nmls::SIMULATION_MODE, nmls::LLG_ENGINE_METHOD, 
-                        nmls::SIMULATION_EXECUTIONS_QNTD, nmls::REPORT_STEP, nmls::SATURATION_MAGNETIZATION,
-                        nmls::TEMPERATURE, nmls::TIME_STEP, nmls::SIMULATION_TIME, nmls::SPIN_ANGLE,
-                        nmls::SPIN_DIFUSION_LENGTH, nmls::THICKNESS, nmls::NEIGHBORHOOD_RATIO
-                        );
+        os << fmt::format(nmls::NMLS_HEADER, nmls::TECHNOLOGY, nmls::SIMULATION_MODE, nmls::LLG_ENGINE_METHOD,
+                          nmls::SIMULATION_EXECUTIONS_QNTD, nmls::REPORT_STEP, nmls::ALPHA,
+                          nmls::SATURATION_MAGNETIZATION, nmls::TEMPERATURE, nmls::TIME_STEP, nmls::SIMULATION_TIME,
+                          nmls::SPIN_ANGLE, nmls::SPIN_DIFUSION_LENGTH, nmls::THICKNESS, nmls::NEIGHBORHOOD_RATIO);
     }
 
     void write_dimensions()
     {
-      std::cout << "\nWritting DIMENSIONS" << std::endl;
-      std::cout << "\nBounding Box min: " << this->bb.get_min() << " - max: " << this->bb.get_max() << std::endl; 
-      std::cout << "\nBounding Box x_size: " << this->bb.get_x_size() << " - y_size: " << this->bb.get_y_size() << std::endl; 
-      os << fmt::format( nmls::DIMENSIONS, 
-        "3000", "4000",
-        nmls::MIN_CELL_WIDTH, nmls::MIN_CELL_HEIGHT,
-        nmls::MAGNET_CENTERS_X_DISTANCE, nmls::MAGNET_CENTERS_Y_DISTANCE
-      );
+        os << "\n"
+           << fmt::format(nmls::DIMENSIONS, "3000", "4000", nmls::MIN_CELL_WIDTH, nmls::MIN_CELL_HEIGHT,
+                          nmls::MAGNET_CENTERS_X_DISTANCE, nmls::MAGNET_CENTERS_Y_DISTANCE);
     }
 
-    void write_entity()
+    void write_phases_section()
     {
-        std::cout << "\nWritting ENTITY" << std::endl;
-        os << nmls::OPEN_ENTITY;
-
-        for (const auto& pi : sorted_pi_list)
-        {
-            os << fmt::format(nmls::PIN, tech_impl_name<technology<Lyt>>, lyt.get_cell_name(pi), 0, bb_x(pi), bb_y(pi));
-        }
-        for (const auto& po : sorted_po_list)
-        {
-            os << fmt::format(nmls::PIN, tech_impl_name<technology<Lyt>>, lyt.get_cell_name(po), 1, bb_x(po), bb_y(po));
-        }
-        os << nmls::CLOSE_ENTITY;
+        os << "\n" << nmls::PHASES_SECTION;
     }
 
-    void write_components()
+    void write_zones_section()
     {
-        os << nmls::OPEN_COMPONENTS;
-        for (const auto& comp : nmls::COMPONENTS)
-        {
-            os << fmt::format(nmls::COMPONENT_ITEM, tech_impl_name<technology<Lyt>>, comp);
-        }
-        os << nmls::CLOSE_COMPONENTS;
+        os << "\n" << nmls::ZONES_SECTION;
+    }
+
+    void write_magnets_section()
+    {
+        os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
+        std::string magnet_lines{""};
+        size_t      idx{0};
+        lyt.foreach_cell([this](const auto& cell) { magnet_lines += get_cell_specs_str(cell, idx) + "\n" });
+        os << "\n" << magnet_lines;
     }
 
     void write_layout()
