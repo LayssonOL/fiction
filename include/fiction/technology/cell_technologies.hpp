@@ -274,7 +274,8 @@ struct inml_technology
 };
 
 /**
- * in-plane Nanomagnet Logic (iNML) technology implementation of the FCN concept following the NMLib shape engineer rules.
+ * in-plane Nanomagnet Logic (iNML) technology implementation of the FCN concept following the NMLib shape engineer
+ * rules.
  */
 struct nmlib_inml_technology
 {
