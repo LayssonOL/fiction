@@ -324,11 +324,11 @@ class write_nmls_layout_impl
         return fmt::format("{0:<020}13{0:<020}37{0:<020}", hash_fragment);
     }
 
-    [[nodiscard]] int get_cell_specs_str(const auto& cell, auto& idx) const
+    [[nodiscard]] std::string get_cell_specs_str(const auto& cell, auto& idx) const
     {
         // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;0;0;pos_x,pos_y;color_code
         std::string cell_str{""};
-        cell_str += "Magnet_" + idx + ";" + lyt.get_cell_type(cell);
+        cell_str += fmt::format("Magnet_{}", idx) + ";" + fmt::format("{}", lyt.get_cell_type(cell));
         idx++;
         return cell_str;
     }
@@ -363,7 +363,8 @@ class write_nmls_layout_impl
         os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
         std::string magnet_lines{""};
         size_t      idx{0};
-        lyt.foreach_cell([this](const auto& cell) { magnet_lines += get_cell_specs_str(cell, idx) + "\n" });
+        lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
+                         { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
         os << "\n" << magnet_lines;
     }
 
