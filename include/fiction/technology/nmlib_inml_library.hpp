@@ -21,7 +21,7 @@
 namespace fiction
 {
 /**
- * A concrete FCN gate library as used in \"NMLib\" for the iNML technology. 
+ * A concrete FCN gate library as used in \"NMLib\" for the iNML technology.
  */
 class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 {
@@ -97,7 +97,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             {
                 if (lyt.is_buf(n))
                 {
-                    const auto a = lyt.above(t);
+                    const auto a        = lyt.above(t);
                     const auto is_equal = t != a;
 
                     // crossing case
@@ -131,10 +131,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         }
         catch (const std::out_of_range&)
         {
-            std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
+            std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p)
+                      << std::endl;
             throw unsupported_gate_orientation_exception(t, p);
         }
-        std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p) << std::endl;
+        std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p)
+                  << std::endl;
 
         throw unsupported_gate_type_exception(t);
     }
@@ -168,8 +170,10 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // upper hump
                 if (const auto inp = lyt.get_cell_type(hump.front()), out = lyt.get_cell_type(hump.back()),
                     fts = lyt.get_cell_type(lyt.south(hump.front())), bts = lyt.get_cell_type(lyt.south(hump.back()));
-                    (inp == nmlib_inml_technology::cell_type::INPUT || fts == nmlib_inml_technology::cell_type::NORMAL) &&
-                    (bts == nmlib_inml_technology::cell_type::NORMAL || out == nmlib_inml_technology::cell_type::OUTPUT ||
+                    (inp == nmlib_inml_technology::cell_type::INPUT ||
+                     fts == nmlib_inml_technology::cell_type::NORMAL) &&
+                    (bts == nmlib_inml_technology::cell_type::NORMAL ||
+                     out == nmlib_inml_technology::cell_type::OUTPUT ||
                      bts == nmlib_inml_technology::cell_type::INVERTER_MAGNET))
                 {
                     // hump found, check if there is enough space below for merging
@@ -196,8 +200,10 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // if there are normal cells north of first and last hump cell, this is a lower hump
                 else if (const auto ftn = lyt.get_cell_type(lyt.north(hump.front())),
                          btn            = lyt.get_cell_type(lyt.north(hump.back()));
-                         (inp == nmlib_inml_technology::cell_type::INPUT || ftn == nmlib_inml_technology::cell_type::NORMAL) &&
-                         (btn == nmlib_inml_technology::cell_type::NORMAL || out == nmlib_inml_technology::cell_type::OUTPUT))
+                         (inp == nmlib_inml_technology::cell_type::INPUT ||
+                          ftn == nmlib_inml_technology::cell_type::NORMAL) &&
+                         (btn == nmlib_inml_technology::cell_type::NORMAL ||
+                          out == nmlib_inml_technology::cell_type::OUTPUT))
                 {
                     // hump found, check if there is enough space above for merging
                     if (std::all_of(hump.begin() + 1, hump.end() - 2,
@@ -417,7 +423,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             }
             else if (lyt.has_south_western_incoming_signal(t))
             {
-                
+
                 // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -436,7 +442,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             // outputs
             if (lyt.has_northern_outgoing_signal(t))
             {
-                
+
                 // special case: if northern tile is MAJ, output port is at (1,0)
                 if (lyt.is_maj(lyt.get_node(lyt.north(t))))
                 {
@@ -481,11 +487,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
-                    
+
                     // but only if that gate is SW of the PO
                     if (lyt.has_south_western_incoming_signal(t))
                     {
-                        
+
                         p.inp.emplace(0u, 2u);
                         p.out.emplace(4u, 4u);
 
@@ -493,7 +499,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                     }
                     if (lyt.has_western_incoming_signal(t))
                     {
-                        
+
                         p.inp.emplace(0u, 2u);
                         p.out.emplace(4u, 4u);
 
@@ -503,18 +509,18 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // if input is north-western, output port is at (3,0)
                 else if (lyt.has_north_western_incoming_signal(t))
                 {
-                    
+
                     p.out.emplace(4u, 0u);
                 }
                 // if input is south-western, output port is at (3,2)
                 else if (lyt.has_south_western_incoming_signal(t))
                 {
-                    
+
                     p.out.emplace(4u, 4u);
                 }
                 else if (lyt.has_western_incoming_signal(t))
                 {
-                    
+
                     p.out.emplace(4u, 4u);
                 }
             }
@@ -549,7 +555,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
-                    
+
                     p.inp.emplace(0u, 3u);
                     p.out.emplace(3u, 3u);
 
@@ -558,43 +564,45 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 // if output is north-eastern, input port is at (0,0)
                 if (lyt.has_north_eastern_outgoing_signal(t))
                 {
-                    
+
                     p.inp.emplace(0u, 0u);
                 }
-                else if (lyt.has_eastern_outgoing_signal(t)) {
-                    
+                else if (lyt.has_eastern_outgoing_signal(t))
+                {
+
                     p.inp.emplace(0u, 0u);
                 }
                 // if output is south-eastern, input port is at (0,2)
                 else if (lyt.has_south_eastern_outgoing_signal(t))
                 {
-                    
+
                     p.inp.emplace(0u, 2u);
                 }
-                else if (lyt.has_southern_outgoing_signal(t)) {
-                    
+                else if (lyt.has_southern_outgoing_signal(t))
+                {
+
                     p.inp.emplace(0u, 2u);
                 }
             }
             // determine outgoing connector ports
             if (lyt.has_north_eastern_outgoing_signal(t))
             {
-                
+
                 // special case: output port of AND, OR, MAJ is fixed at pos (3,1)
                 if (lyt.is_and(n) || lyt.is_or(n) || lyt.is_maj(n))
                 {
-                    
+
                     p.out.emplace(3u, 1u);
                 }
                 else
                 {
-                    
+
                     p.out.emplace(3u, 0u);
                 }
             }
             if (lyt.has_south_eastern_outgoing_signal(t))
             {
-                
+
                 p.out.emplace(3u, 2u);
             }
         }
@@ -626,11 +634,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
     static constexpr const fcn_gate CONJUNCTION{cell_list_to_gate<char>(
     {{
-        {'x', 'x', 'x', 'D', 'x'},
+        {' ', ' ', 'x', 'd', 'x'},
         {' ', ' ', ' ', ' ', 'x'},
-        {' ', ' ', ' ', ' ', 'u'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {'x', 'x', 'x', 'D', 'x'},
+        {'x', ' ', ' ', ' ', 'u'},
+        {' ', 'x', ' ', ' ', 'x'},
+        {' ', ' ', 'x', 'd', 'x'},
     }})};
 
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
@@ -682,7 +690,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', 'x', ' ', ' ', ' '},
         {' ', 'x', ' ', ' ', ' '},
-        {' ', 'x', 'x', 'x', 'x'},
+        {' ', 'x', 's', 'x', 'x'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
@@ -749,7 +757,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {'x', ' ', ' ', ' ', ' '},
         {'x', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', 'x', 'x'},
+        {'x', 's', 'x', 's', 'x'},
         {' ', ' ', ' ', ' ', 'x'},
         {' ', ' ', ' ', ' ', 'x'}
     }})};
@@ -758,7 +766,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', 'x', ' ', ' '},
         {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'},
+        {' ', ' ', 'x', 's', 'x'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
@@ -767,7 +775,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', ' ', ' ', 'x'},
         {' ', ' ', ' ', ' ', 'x'},
-        {'x', 'x', 'x', 'x', 'x'},
+        {'x', 's', 'x', 's', 'x'},
         {'x', ' ', ' ', ' ', ' '},
         {'x', ' ', ' ', ' ', ' '}
     }})};
@@ -776,7 +784,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'},
+        {' ', ' ', 'x', 's', 'x'},
         {' ', ' ', 'x', ' ', ' '},
         {' ', ' ', 'x', ' ', ' '}
     }})};
@@ -792,9 +800,9 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
     static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', 'x', 'x'},
+        {' ', ' ', 'x', 's', 'x'},
         {' ', ' ', 'x', ' ', ' '},
-        {'x', 'x', 'x', ' ', ' '},
+        {'x', 's', 'x', ' ', ' '},
         {'x', ' ', ' ', ' ', ' '},
         {'x', ' ', ' ', ' ', ' '}
     }})};
@@ -803,9 +811,9 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', ' ', ' '},
+        {'x', 's', 'x', ' ', ' '},
         {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'}
+        {' ', ' ', 'x', 's', 'x'}
     }})};
 
     static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE{cell_list_to_gate<char>(
@@ -861,20 +869,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {{{port_position(0, 3)}, {}}, rotate_180(LOWER_WIRE)},
         // bent wires
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_WIRE},
-        {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 0)}}, BOTTOM_UP_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(3, 3)}}, BOTTOM_DOWN_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 4)}}, BOTTOM_DOWN_BENT_WIRE},
         // staircase wires
         {{{port_position(0, 0)}, {port_position(3, 3)}}, TOP_DOWN_STAIRCASE_WIRE},
-        {{{port_position(0, 0)}, {port_position(4, 4)}}, TOP_DOWN_STAIRCASE_WIRE},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
-        {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
         {{{port_position(0, 3)}, {port_position(3, 2)}}, COUPLER_WIRE},
         // NOTE more wires go here!
+
+        // NMLIB Tile of 5x5
         // straight wires
         {{{port_position(0, 4)}, {port_position(4, 4)}}, LOWER_WIRE},
         {{{}, {port_position(4, 4)}}, LOWER_WIRE},
@@ -886,23 +891,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
         {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE)},
         // bent wires
-        {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_WIRE},
         {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE},
         {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(4, 0)}}, BOTTOM_UP_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(3, 3)}}, BOTTOM_DOWN_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(4, 4)}}, BOTTOM_DOWN_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(2, 4)}}, LEFT_DOWN_BENT_WIRE},
         // staircase wires
-        {{{port_position(0, 0)}, {port_position(3, 3)}}, TOP_DOWN_STAIRCASE_WIRE},
         {{{port_position(0, 0)}, {port_position(4, 4)}}, TOP_DOWN_STAIRCASE_WIRE},
-        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
         {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
-        {{{port_position(0, 3)}, {port_position(3, 2)}}, COUPLER_WIRE}
-    };
+        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE}};
     /**
      * Lookup table for inverter rotations. Maps ports to corresponding inverters.
      */
