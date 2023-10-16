@@ -333,8 +333,9 @@ class write_nmls_layout_impl
 
         os << "\n"
            << fmt::format(nmls::DIMENSIONS, LAYOUT_HEIGHT, LAYOUT_WIDTH, nmlib_inml_technology::CELL_HSPACE,
-                          nmlib_inml_technology::CELL_VSPACE, nmlib_inml_technology::CELL_HSPACE,
-                          nmlib_inml_technology::CELL_VSPACE);
+                          nmlib_inml_technology::CELL_VSPACE,
+                          (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH),
+                          (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::BIG_CELL_HEIGHT));
     }
 
     void write_phases_section()
