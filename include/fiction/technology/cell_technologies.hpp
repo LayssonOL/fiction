@@ -433,6 +433,19 @@ struct nmlib_inml_technology
      * Default vertical spacing between two iNML cells in NMLib.
      */
     static constexpr uint64_t CELL_VSPACE = 20ul;
+    /**
+     * Default cells thickness in NMLib.
+     */
+    static constexpr uint64_t CELL_THICKNESS = 15ul;
+    /**
+     * Default initial X and Y distances to put all magnets into visible layout space of NMLSim.
+     */
+    static constexpr uint64_t LAYOUT_BASE_X = 30ul;
+    static constexpr uint64_t LAYOUT_BASE_Y = 80ul;
+    /**
+     * Default magnetization in NMLib.
+     */
+    static constexpr auto DEFAULT_MAG = "0.99,0.141,0,";
 };
 
 /**
