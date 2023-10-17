@@ -129,7 +129,7 @@ inline constexpr const char* MAGNETS_SECTION_HEADER = "Magnets\n{}";
 
 // Magnet Specs {{{
 // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code
-inline constexpr const char* MAGNET_SPECS = "Magnet_{};{};{};{};{};{};{};{};{};{};{};{}";
+inline constexpr const char* MAGNET_SPECS = "Magnet_{};{};{};{};{};{};{};{};{};{};{};{};{};";
 // }}}
 
 inline constexpr const char* LAYOUT_ITEM_PROPERTY = "\t\t\t<property name=\"{}\" value=\"{}\"/>\n";
@@ -294,23 +294,63 @@ class write_nmls_layout_impl
         return fmt::format("{0:<020}13{0:<020}37{0:<020}", hash_fragment);
     }
 
+    [[nodiscard]] std::tuple<std::string, std::string> get_cell_cuts(const auto& cell) const
+    {
+        auto cell_type = lyt.get_cell_type(cell);
+        switch (cell_type)
+        {
+            case nmlib_inml_technology::cell_type::EMPTY: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::NORMAL: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::INPUT: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::OUTPUT: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET: return {"-15", "0"}; break;
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET: return {"0", "-15"}; break;
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_AND_DOWN_MAGNET: return {"-15", "-15"}; break;
+            case nmlib_inml_technology::cell_type::INVERTER_MAGNET: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET: return {"0", "0"}; break;
+        }
+    }
+
     [[nodiscard]] std::string get_magnet_type(const auto& cell) const
     {
         return lyt.is_pi(cell) ? "input" : lyt.is_po(cell) ? "output" : "regular";
+    }
+
+    [[nodiscard]] std::string get_cell_color(const auto& clock_zone) const
+    {
+        if (clock_zone == 0)
+        {
+            return "-16777216";
+        }
+
+        if (clock_zone == 1)
+        {
+            return "-30208";
+        }
+
+        if (clock_zone == 2)
+        {
+            return "-14757932";
+        }
+
+        return "-11206444";
     }
 
     [[nodiscard]] std::string get_cell_specs_str(const auto& cell, auto& idx) const
     {
         // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code
         std::string cell_str{""};
-        std::string magnet_type         = get_magnet_type(cell);
-        std::string fixed_magnetization = magnet_type == "input" ? "true" : "false";
+        std::string magnet_type          = get_magnet_type(cell);
+        std::string fixed_magnetization  = magnet_type == "input" ? "true" : "false";
+        const auto& clock_zone           = lyt.get_clock_number(cell);
+        const auto [top_cut, bottom_cut] = get_cell_cuts(cell);
         // TODO: Calculate magnet X and Y coordinates in nanometers (LAYOUT_BASE_X + (MAGNET_X * CELL_HSPACE) and
         // (LAYOUT_BASE_Y + (MAGNET_Y * CELL_VSPACE))
-        std::string magnet_str =
-            fmt::format(nmls::MAGNET_SPECS, idx, magnet_type, lyt.get_clock_number(cell),
-                        nmlib_inml_technology::DEFAULT_MAG, fixed_magnetization, std::string{""}, std::string{""},
-                        nmlib_inml_technology::CELL_THICKNESS, "0", "0", "0", "0", "colorcode");
+        std::string magnet_str = fmt::format(
+            nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG, fixed_magnetization,
+            nmlib_inml_technology::CELL_WIDTH, nmlib_inml_technology::CELL_HEIGHT,
+            nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut, "0", "0", get_cell_color(clock_zone));
         cell_str += fmt::format(magnet_str);
         idx++;
         return cell_str;
@@ -377,7 +417,8 @@ class write_nmls_layout_impl
     //                 continue;
     //             }
     //
-    //             // if an AND or an OR structure is encountered, the next two magnets in southern direction need to
+    //             // if an AND or an OR structure is encountered, the next two magnets in southern direction need
+    //             to
     //             // be skipped
     //             if (type == nmlib_inml_technology::cell_type::SLANTED_EDGE_UP_MAGNET ||
     //                 type == nmlib_inml_technology::cell_type::SLANTED_EDGE_DOWN_MAGNET)
