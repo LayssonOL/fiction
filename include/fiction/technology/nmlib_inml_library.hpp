@@ -634,38 +634,38 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
     static constexpr const fcn_gate CONJUNCTION{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', 'd', 'x'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {'x', ' ', ' ', ' ', 'u'},
-        {' ', 'x', ' ', ' ', 'x'},
-        {' ', ' ', 'x', 'd', 'x'},
+        {' ', ' ', 'n', 'C', 'N'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {'n', ' ', ' ', ' ', 'u'},
+        {' ', 'N', ' ', ' ', 'n'},
+        {' ', ' ', 'N', 'c', 'N'},
     }})};
 
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
     {{
-        {'x', 'x', 'x', 's', 'x'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {' ', ' ', ' ', ' ', 'u'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {'x', 'x', 'x', 's', 'x'}
+        {'N', 'n', 'N', 'n', 'N'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', ' ', ' ', 'y'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {'N', 'n', 'N', 'n', 'N'}
     }})};
 
     static constexpr const fcn_gate MAJORITY{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 's', ' ', ' '},
-        {'x', 's', 's', 's', 'x'},
-        {' ', ' ', 's', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {'n', 'd', 'n', 'c', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {' ', 'x', ' ', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'},
+        {'n', ' ', ' ', ' ', ' '},
+        {' ', 'n', ' ', ' ', ' '},
+        {' ', ' ', 'N', 'n', 'n'},
     }})};
 
     static constexpr const fcn_gate BOTTOM_LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
@@ -673,24 +673,24 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 'x', ' ', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'},
+        {'N', 'n', ' ', ' ', ' '},
+        {' ', ' ', 'N', 'n', 'n'},
     }})};
 
     static constexpr const fcn_gate UPPER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', 'x', 'x'},
-        {' ', 'x', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
+        {' ', ' ', 'N', 'n', 'n'},
+        {' ', 'n', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate TOP_DOWN_BENT_INVERTER{cell_list_to_gate<char>(
     {{
-        {' ', 'x', ' ', ' ', ' '},
-        {' ', 'x', ' ', ' ', ' '},
-        {' ', 'x', 's', 'x', 'x'},
+        {' ', 'N', ' ', ' ', ' '},
+        {' ', 'n', ' ', ' ', ' '},
+        {' ', 'N', 'c', 'n', 'n'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
@@ -699,18 +699,18 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {' ', 'x', 'x', 'x', 'x'},
-        {' ', 'x', ' ', ' ', ' '},
-        {' ', 'x', ' ', ' ', ' '},
+        {' ', 'N', 'c', 'n', 'N'},
+        {' ', 'n', ' ', ' ', ' '},
+        {' ', 'N', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate BOTTOM_LOWER_UP_BENT_INVERTER{cell_list_to_gate<char>(
     {{
-        {'x', 'x', 'x', 'x', 'x'},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
+        {'N', 'c', 'n', 'N', 'n'},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' '},
     }})};
 
     // ************************************************************
@@ -719,20 +719,20 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
     static constexpr const fcn_gate CROSSWIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'c', ' ', ' '},
-        {'x', 's', 'x', 's', 'x'},
-        {' ', ' ', 'c', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '}
+        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {'n', 'd', 'n', 'c', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate COUPLER{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'f', 'f', 'x'},
-        {' ', ' ', 'f', ' ', ' '},
-        {'x', 'f', 'f', ' ', ' '},
-        {' ', ' ', 'f', ' ', ' '},
-        {' ', ' ', 'f', 'f', 'x'}
+        {' ', ' ', 'N', 'n', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {'N', 'n', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', 'n', 'n'},
     }})};
 
     static constexpr const fcn_gate LOWER_WIRE{cell_list_to_gate<char>(
@@ -741,102 +741,102 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', 'x', 'x'}
+        {'N', 'n', 'N', 'n', 'n'},
     }})};
 
     static constexpr const fcn_gate MIDDLER_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', 'x', 'x'},
+        {'N', 'n', 'N', 'n', 'n'},
         {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', 's', 'x', 's', 'x'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {' ', ' ', ' ', ' ', 'x'}
+        {'N', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', 'c', 'n', 'd', 'N'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', ' ', ' ', 'N'},
     }})};
 
     static constexpr const fcn_gate TOP_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', 's', 'x'},
+        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', 'c', 'n'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate BOTTOM_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', 'x'},
-        {' ', ' ', ' ', ' ', 'x'},
-        {'x', 's', 'x', 's', 'x'},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '}
+        {' ', ' ', ' ', ' ', 'N'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {'N', 'c', 'n', 'd', 'N'},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_gate BOTTOM_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', 'x', 's', 'x'},
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '}
+        {' ', ' ', 'N', 'c', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '}
     }})};
 
     static constexpr const fcn_gate TOP_DOWN_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', 'x', 'x'}
+        {'N', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', 'c', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', 'c', 'n'}
     }})};
 
     static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', 's', 'x'},
-        {' ', ' ', 'x', ' ', ' '},
-        {'x', 's', 'x', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '}
+        {' ', ' ', 'N', 'c', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {'N', 'c', 'N', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' '}
     }})};
 
     static constexpr const fcn_gate BOTTOM_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 's', 'x', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'x', 's', 'x'}
+        {'N', 'd', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', 'c', 'n'}
     }})};
 
     static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 's', 'x', ' ', ' '},
-        {' ', ' ', 'c', ' ', ' '},
-        {' ', ' ', 'x', ' ', ' '}
+        {'N', 'c', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '}
     }})};
 
     static constexpr const fcn_gate LEFT_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'x', ' ', ' '},
-        {' ', ' ', 'c', ' ', ' '},
-        {'x', 's', 'x', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {'N', 'd', 'N', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '}
     }})};
 
     static constexpr const fcn_gate MAJORITY_WIRE{cell_list_to_gate<char>(
     {{
-        {'x', 'x', ' ', ' ', ' '},
+        {'n', 'n', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
@@ -847,9 +847,9 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'x', 'x', 'x', 'x', 'x'},
-        {'x', ' ', ' ', ' ', ' '},
-        {'x', ' ', ' ', ' ', ' '}
+        {'N', 'c', 'n', 'N', 'n'},
+        {'n', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' '}
     }})};
 
     // clang-format on

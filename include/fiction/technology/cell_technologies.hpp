@@ -291,43 +291,65 @@ struct nmlib_inml_technology
         /**
          * Symbol used for normal iNML cells.
          */
-        NORMAL = 'x',
+        LITTLE = 'l',
+        NORMAL = 'n',
+        BIG    = 'N',
         /**
          * Symbol used for input iNML cells.
          */
-        INPUT = 'i',
+        LITTLE_INPUT = '1',
+        INPUT        = 'i',
+        BIG_INPUT    = 'I',
         /**
          * Symbol used for output iNML cells.
          */
-        OUTPUT = 'o',
+        LITTLE_OUTPUT = '0',
+        OUTPUT        = 'o',
+        BIG_OUTPUT    = 'O',
         /**
          * Symbol used for upper right slanted edge magnets.
          */
-        SLANTED_EDGE_UP_MAGNET = 'u',
+        LITTLE_SLANTED_EDGE_RIGHT_UP_MAGNET = '2',
+        SLANTED_EDGE_RIGHT_UP_MAGNET        = 'u',
+        BIG_SLANTED_EDGE_RIGHT_UP_MAGNET    = 'U',
         /**
          * Symbol used for upper left slanted edge magnets.
          */
-        // SLANTED_EDGE_UP_MAGNET = 'r',
+        LITTLE_SLANTED_EDGE_LEFT_UP_MAGNET = '3',
+        SLANTED_EDGE_LEFT_UP_MAGNET        = 'y',
+        BIG_SLANTED_EDGE_LEFT_UP_MAGNET    = 'Y',
         /**
-         * Symbol used for lower right slanted edge magnets.
+         * Symbol used for left down slanted edge magnets.
          */
-        SLANTED_EDGE_DOWN_MAGNET = 'd',
+        LITTLE_SLANTED_EDGE_LEFT_DOWN_MAGNET = '4',
+        SLANTED_EDGE_LEFT_DOWN_MAGNET        = 'p',
+        BIG_SLANTED_EDGE_LEFT_DOWN_MAGNET    = 'P',
         /**
-         * Symbol used for lower left slanted edge magnets.
+         * Symbol used for right down slanted edge magnets.
          */
-        // SLANTED_EDGE_DOWN_MAGNET = 'D',
+        LITTLE_SLANTED_EDGE_RIGHT_DOWN_MAGNET = '5',
+        SLANTED_EDGE_RIGHT_DOWN_MAGNET        = 'r',
+        BIG_SLANTED_EDGE_RIGHT_DOWN_MAGNET    = 'R',
+        /**
+         * Symbol used for left up and down slanted edge magnets.
+         */
+        LITTLE_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET = '6',
+        SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET        = 'c',
+        BIG_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET    = 'C',
         /**
          * Symbol used for lower slanted edge magnets.
          */
-        SLANTED_EDGE_UP_AND_DOWN_MAGNET = 's',
+        LITTLE_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET = '7',
+        SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET        = 'd',
+        BIG_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET    = 'D',
         /**
          * Symbol used for inverter magnets.
          */
-        INVERTER_MAGNET = 'n',
+        INVERTER_MAGNET = 'v',
         /**
          * Symbol used for cross-wire magnets.
          */
-        CROSSWIRE_MAGNET = 'c',
+        CROSSWIRE_MAGNET = 'x',
         /**
          * Symbol used for coupler (fan-out) magnets.
          */
@@ -371,17 +393,17 @@ struct nmlib_inml_technology
 
     [[nodiscard]] static constexpr bool is_slanted_edge_up_magnet(const cell_type& c) noexcept
     {
-        return c == SLANTED_EDGE_UP_MAGNET;
+        return c == SLANTED_EDGE_LEFT_UP_MAGNET || c == SLANTED_EDGE_RIGHT_UP_MAGNET;
     }
 
     [[nodiscard]] static constexpr bool is_slanted_edge_down_magnet(const cell_type& c) noexcept
     {
-        return c == SLANTED_EDGE_DOWN_MAGNET;
+        return c == SLANTED_EDGE_LEFT_DOWN_MAGNET || c == SLANTED_EDGE_RIGHT_DOWN_MAGNET;
     }
 
     [[nodiscard]] static constexpr bool is_slanted_edge_up_and_down_magnet(const cell_type& c) noexcept
     {
-        return c == SLANTED_EDGE_UP_AND_DOWN_MAGNET;
+        return c == SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET || c == SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET;
     }
 
     [[nodiscard]] static constexpr bool is_slanted_edge_magnet(const cell_type& c) noexcept
@@ -407,6 +429,33 @@ struct nmlib_inml_technology
     [[nodiscard]] static constexpr bool is_normal_cell_mode([[maybe_unused]] const cell_mode& m) noexcept
     {
         return true;
+    }
+
+    [[nodiscard]] static constexpr uint64_t get_cell_height([[maybe_unused]] const cell_type& c) noexcept
+    {
+        switch (c)
+        {
+            case LITTLE:
+            case LITTLE_INPUT:
+            case LITTLE_OUTPUT:
+            case LITTLE_SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case LITTLE_SLANTED_EDGE_LEFT_UP_MAGNET:
+            case LITTLE_SLANTED_EDGE_LEFT_DOWN_MAGNET:
+            case LITTLE_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case LITTLE_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
+            case LITTLE_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return LITTLE_CELL_HEIGHT; break;
+
+            case BIG:
+            case BIG_INPUT:
+            case BIG_OUTPUT:
+            case BIG_SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case BIG_SLANTED_EDGE_LEFT_UP_MAGNET:
+            case BIG_SLANTED_EDGE_LEFT_DOWN_MAGNET:
+            case BIG_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case BIG_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
+            case BIG_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return BIG_CELL_HEIGHT; break;
+            default: return CELL_HEIGHT; break;
+        }
     }
 
     /**
@@ -457,23 +506,22 @@ struct sidb_technology
      * Possible types of SiDB cells.
      */
     enum cell_type : uint8_t
-    {
-        /**
-         * Symbol used for empty SiDB cells.
-         */
-        EMPTY = ' ',
-        /**
-         * Symbol used for normal SiDB cells.
-         */
-        NORMAL = 'x',
-        /**
-         * Symbol used for input SiDB cells.
-         */
-        INPUT = 'i',
-        /**
-         * Symbol used for output SiDB cells.
-         */
-        OUTPUT = 'o'
+    { /**
+       * Symbol used for empty SiDB cells.
+       */
+      EMPTY = ' ',
+      /**
+       * Symbol used for normal SiDB cells.
+       */
+      NORMAL = 'x',
+      /**
+       * Symbol used for input SiDB cells.
+       */
+      INPUT = 'i',
+      /**
+       * Symbol used for output SiDB cells.
+       */
+      OUTPUT = 'o'
     };
 
     /**
