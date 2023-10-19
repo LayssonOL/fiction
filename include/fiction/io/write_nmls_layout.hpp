@@ -228,14 +228,10 @@ class write_nmls_layout_impl
     [[nodiscard]] bool has_border_io_pins() const noexcept
     {
         auto all_border_pins = true;
-        std::cout << "\nBounding box min X: " << bb.get_min().x << " - Y: " << bb.get_min().y << std::endl;
-        std::cout << "Bounding box max X: " << bb.get_max().x << " - Y: " << bb.get_max().y << std::endl;
-
         // check PI border cells
         lyt.foreach_pi(
             [this, &all_border_pins](const auto& pi)
             {
-                std::cout << "PI: " << pi << std::endl;
                 if (bb_x(pi) != 0)
                 {
                     all_border_pins = false;
@@ -247,8 +243,6 @@ class write_nmls_layout_impl
         lyt.foreach_po(
             [this, &all_border_pins](const auto& po)
             {
-                std::cout << "PO: " << po << std::endl;
-                std::cout << "Lyt X: " << lyt.x() << std::endl;
                 if (bb_x(po) != lyt.x())
                 {
                     all_border_pins = false;
@@ -301,19 +295,49 @@ class write_nmls_layout_impl
         auto cell_type = lyt.get_cell_type(cell);
         switch (cell_type)
         {
-            case nmlib_inml_technology::cell_type::EMPTY: return {"0", "0"}; break;
-            case nmlib_inml_technology::cell_type::NORMAL: return {"0", "0"}; break;
-            case nmlib_inml_technology::cell_type::INPUT: return {"0", "0"}; break;
+            case nmlib_inml_technology::cell_type::EMPTY:
+            case nmlib_inml_technology::cell_type::LITTLE:
+            case nmlib_inml_technology::cell_type::NORMAL:
+            case nmlib_inml_technology::cell_type::BIG:
+            case nmlib_inml_technology::cell_type::LITTLE_INPUT:
+            case nmlib_inml_technology::cell_type::INPUT:
+            case nmlib_inml_technology::cell_type::BIG_INPUT:
+            case nmlib_inml_technology::cell_type::LITTLE_OUTPUT:
+            case nmlib_inml_technology::cell_type::BIG_OUTPUT:
             case nmlib_inml_technology::cell_type::OUTPUT: return {"0", "0"}; break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_LEFT_UP_MAGNET:
             case nmlib_inml_technology::cell_type::SLANTED_EDGE_LEFT_UP_MAGNET:
-            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_UP_MAGNET: return {"-15", "0"}; break;
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_LEFT_UP_MAGNET: return {"-15", "0"}; break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_RIGHT_UP_MAGNET: return {"15", "0"}; break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_LEFT_DOWN_MAGNET:
             case nmlib_inml_technology::cell_type::SLANTED_EDGE_LEFT_DOWN_MAGNET:
-            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_DOWN_MAGNET: return {"0", "-15"}; break;
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_LEFT_DOWN_MAGNET: return {"0", "-15"}; break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_RIGHT_DOWN_MAGNET: return {"0", "15"}; break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
             case nmlib_inml_technology::cell_type::SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
-            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return {"-15", "-15"}; break;
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
+                return {"-15", "-15"};
+                break;
+
+            case nmlib_inml_technology::cell_type::LITTLE_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET:
+            case nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET:
+            case nmlib_inml_technology::cell_type::BIG_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET:
+                return {"15", "15"};
+                break;
+
             case nmlib_inml_technology::cell_type::INVERTER_MAGNET: return {"0", "0"}; break;
             case nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET: return {"0", "0"}; break;
             case nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET: return {"0", "0"}; break;
+            default: return {"0", "0"}; break;
         }
     }
 
@@ -398,6 +422,7 @@ class write_nmls_layout_impl
         os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
         std::string magnet_lines{""};
         size_t      idx{0};
+        std::cout << "Magnets Section" << std::endl;
         lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
                          { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
         os << "\n" << magnet_lines;
