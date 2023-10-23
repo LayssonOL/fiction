@@ -82,8 +82,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
         const auto p = determine_port_routing(lyt, t);
 
-        std::cout << "After determine_port_routing " << fmt::format(" ports {}", p) << std::endl;
-
         try
         {
             if constexpr (fiction::has_is_inv_v<GateLyt>)
@@ -110,18 +108,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
 
                     if (lyt.is_pi(n))
                     {
-                        std::cout << "set_up_gate - n is PI is empty " << p.inp.empty() << std::endl;
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
-                        std::cout << "set_up_gate - inp_mark_pos " << fmt::format(" {} ", inp_mark_pos) << std::endl;
-
                         wire = mark_cell(wire, inp_mark_pos, nmlib_inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
                     {
-                        std::cout << "set_up_gate - n is PO - is empty " << p.out.empty() << std::endl;
                         const auto out_mark_pos = p.out.empty() ? opposite(*p.inp.begin()) : *p.out.begin();
-                        std::cout << "set_up_gate - out_mark_pos " << fmt::format(" {} ", out_mark_pos) << std::endl;
-
                         wire = mark_cell(wire, out_mark_pos, nmlib_inml_technology::cell_mark::OUTPUT);
                     }
 
@@ -131,12 +123,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         }
         catch (const std::out_of_range&)
         {
-            std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p)
-                      << std::endl;
             throw unsupported_gate_orientation_exception(t, p);
         }
-        std::cout << fmt::format("MY : [e] unsupported gate orientation at tile position {} with ports {}", t, p)
-                  << std::endl;
 
         throw unsupported_gate_type_exception(t);
     }
@@ -411,7 +399,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         // wires within the circuit
         if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            std::cout << "\n nmlib_inml_library - determine_port_routing - node: " << n << " is a wire" << std::endl;
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -483,7 +470,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
-                std::cout << "\n nmlib_inml_library - determine_port_routing - node: " << n << " is a PO" << std::endl;
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -551,7 +537,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             // special case: PI determines input according to successor
             if (lyt.is_pi(n))
             {
-                std::cout << "\n nmlib_inml_library - determine_port_routing - node: " << n << " is a PI" << std::endl;
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
@@ -565,23 +550,23 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                 if (lyt.has_north_eastern_outgoing_signal(t))
                 {
 
-                    p.inp.emplace(0u, 0u);
+                    p.inp.emplace(2u, 4u);
                 }
                 else if (lyt.has_eastern_outgoing_signal(t))
                 {
 
-                    p.inp.emplace(0u, 0u);
+                    p.inp.emplace(0u, 2u);
                 }
                 // if output is south-eastern, input port is at (0,2)
                 else if (lyt.has_south_eastern_outgoing_signal(t))
                 {
 
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(2u, 0u);
                 }
                 else if (lyt.has_southern_outgoing_signal(t))
                 {
 
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(2u, 0u);
                 }
             }
             // determine outgoing connector ports
@@ -753,6 +738,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate INPUT_MIDDLER_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', 'n', 'N', 'n', 'n'},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+    }})};
+
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {'N', ' ', ' ', ' ', ' '},
@@ -860,7 +854,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         // straight wires
         {{{port_position(0, 2)}, {port_position(3, 2)}}, LOWER_WIRE},
         {{{}, {port_position(3, 2)}}, LOWER_WIRE},
-        {{{port_position(0, 2)}, {}}, LOWER_WIRE},
+        {{{port_position(0, 2)}, {}}, INPUT_MIDDLER_WIRE},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, MIDDLER_WIRE},
         {{{}, {port_position(3, 0)}}, MIDDLER_WIRE},
         {{{port_position(0, 0)}, {}}, MIDDLER_WIRE},

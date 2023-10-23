@@ -7,6 +7,7 @@
 #define FICTION_WRITE_QCC_LAYOUT_HPP
 
 #include "fiction/layouts/bounding_box.hpp"
+#include "fiction/technology/cell_ports.hpp"
 #include "fiction/technology/cell_technologies.hpp"
 #include "fiction/technology/nmlsim_magnet_count.hpp"
 #include "fiction/traits.hpp"
@@ -374,12 +375,16 @@ class write_nmls_layout_impl
         std::string fixed_magnetization  = magnet_type == "input" ? "true" : "false";
         const auto& clock_zone           = lyt.get_clock_number(cell);
         const auto [top_cut, bottom_cut] = get_cell_cuts(cell);
-        // TODO: Calculate magnet X and Y coordinates in nanometers (LAYOUT_BASE_X + (MAGNET_X * CELL_HSPACE) and
-        // (LAYOUT_BASE_Y + (MAGNET_Y * CELL_VSPACE))
-        std::string magnet_str = fmt::format(
-            nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG, fixed_magnetization,
-            nmlib_inml_technology::CELL_WIDTH, nmlib_inml_technology::CELL_HEIGHT,
-            nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut, "0", "0", get_cell_color(clock_zone));
+        const uint32_t cell_abs_x        = nmlib_inml_technology::LAYOUT_BASE_X +
+                                    (cell.x * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH));
+        const uint32_t cell_abs_y =
+            nmlib_inml_technology::LAYOUT_BASE_Y +
+            (cell.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::CELL_HEIGHT));
+        std::string magnet_str =
+            fmt::format(nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG,
+                        fixed_magnetization, nmlib_inml_technology::CELL_WIDTH, nmlib_inml_technology::CELL_HEIGHT,
+                        nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut, cell_abs_x, cell_abs_y,
+                        get_cell_color(clock_zone));
         cell_str += fmt::format(magnet_str);
         idx++;
         return cell_str;
@@ -422,7 +427,6 @@ class write_nmls_layout_impl
         os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
         std::string magnet_lines{""};
         size_t      idx{0};
-        std::cout << "Magnets Section" << std::endl;
         lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
                          { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
         os << "\n" << magnet_lines;
