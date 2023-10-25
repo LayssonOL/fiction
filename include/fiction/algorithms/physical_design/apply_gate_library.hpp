@@ -87,12 +87,14 @@ class apply_gate_library_impl
     GateLyt gate_lyt;
     CellLyt cell_lyt;
 
-    void assign_gate(const cell<CellLyt>& c, const typename GateLibrary::fcn_gate& g,
+    void assign_gate(const cell<CellLyt>& c, const typename GateLibrary::fcn_gate_clk_sch& gclk,
                      const mockturtle::node<GateLyt>& n)
     {
         auto start_x = c.x;
         auto start_y = c.y;
         auto layer   = c.z;
+        auto g       = gclk.first;
+        auto clk     = gclk.second;
 
         for (auto y = 0ul; y < g.size(); ++y)
         {
@@ -104,6 +106,7 @@ class apply_gate_library_impl
                 if (!technology<CellLyt>::is_empty_cell(type))
                 {
                     cell_lyt.assign_cell_type(pos, type);
+                    cell_lyt.assign_custom_clock_number(pos, clk);
                 }
 
                 // set IO names

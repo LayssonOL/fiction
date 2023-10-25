@@ -38,7 +38,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
      * @return NMLib gate representation of `t` including I/Os, rotation, etc.
      */
     template <typename GateLyt>
-    [[nodiscard]] static fcn_gate set_up_gate(const GateLyt& lyt, const tile<GateLyt>& t)
+    [[nodiscard]] static fcn_gate_clk_sch set_up_gate(const GateLyt& lyt, const tile<GateLyt>& t)
     {
         static_assert(is_gate_level_layout_v<GateLyt>, "Lyt must be a gate-level layout");
         // static_assert(is_shifted_cartesian_layout_v<GateLyt>, "Lyt must be a shifted Cartesian layout");
@@ -46,7 +46,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         // crossing magnets are handled only in the ground layer
         if (lyt.is_crossing_layer(t))
         {
-            return EMPTY_GATE;
+            return std::make_pair(EMPTY_GATE, NULL);
         }
 
         const auto n = lyt.get_node(t);
@@ -55,28 +55,28 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {
             if (lyt.is_fanout(n))
             {
-                return COUPLER;
+                return std::make_pair(COUPLER, COUPLER_WIRE_CLOCK_SCHEME);
             }
         }
         if constexpr (mockturtle::has_is_and_v<GateLyt>)
         {
             if (lyt.is_and(n))
             {
-                return CONJUNCTION;
+                return std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME);
             }
         }
         if constexpr (mockturtle::has_is_or_v<GateLyt>)
         {
             if (lyt.is_or(n))
             {
-                return DISJUNCTION;
+                return std::make_pair(DISJUNCTION, DISJUNCTION_CLOCK_SCHEME);
             }
         }
         if constexpr (mockturtle::has_is_maj_v<GateLyt>)
         {
             if (lyt.is_maj(n))
             {
-                return MAJORITY;
+                return std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME);
             }
         }
 
@@ -88,7 +88,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
             {
                 if (lyt.is_inv(n))
                 {
-                    return INVERTER_MAP.at(p);
+                    return std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p));
                 }
             }
             if constexpr (fiction::has_is_buf_v<GateLyt>)
@@ -101,10 +101,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        return CROSSWIRE;
+                        return std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME);
                     }
 
-                    auto wire = WIRE_MAP.at(p);
+                    auto wire            = WIRE_MAP.at(p);
+                    auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
 
                     if (lyt.is_pi(n))
                     {
@@ -117,7 +118,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
                         wire = mark_cell(wire, out_mark_pos, nmlib_inml_technology::cell_mark::OUTPUT);
                     }
 
-                    return wire;
+                    return std::make_pair(wire, wire_clk_scheme);
                 }
             }
         }
@@ -626,13 +627,31 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', 'c', 'N'},
     }})};
 
+    static constexpr const fcn_gate CONJUNCTION_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 0, 1, 2},
+        {-1, -1, -1, -1, 2},
+        {0, -1, -1, -1, 3},
+        {-1, 0, -1, -1, 2},
+        {-1, -1, 1, 1, 2},
+    }})};
+
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
     {{
         {'N', 'n', 'N', 'n', 'N'},
         {' ', ' ', ' ', ' ', 'n'},
         {' ', ' ', ' ', ' ', 'y'},
         {' ', ' ', ' ', ' ', 'n'},
-        {'N', 'n', 'N', 'n', 'N'}
+        {'N', 'n', 'N', 'n', 'N'},
+    }})};
+
+    static constexpr const fcn_gate DISJUNCTION_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        { 0,  0, 1, 1, 2},
+        {-1,-1, -1,-1, 2},
+        {-1,-1, -1,-1, 3},
+        {-1,-1, -1,-1, 2},
+        { 0,  0, 1, 1, 2},
     }})};
 
     static constexpr const fcn_gate MAJORITY{cell_list_to_gate<char>(
@@ -644,6 +663,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate MAJORITY_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1},
+        {0, 0, 1, 2, 2},
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1},
+    }})};
+
     static constexpr const fcn_gate LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -651,6 +679,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'n', ' ', ' ', ' ', ' '},
         {' ', 'n', ' ', ' ', ' '},
         {' ', ' ', 'N', 'n', 'n'},
+    }})};
+
+    static constexpr const fcn_gate LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0, -1, -1, -1, -1},
+        {-1, 0, -1, -1, -1},
+        {-1, -1, 1,  1,  2},
     }})};
 
     static constexpr const fcn_gate BOTTOM_LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
@@ -662,6 +699,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', 'n', 'n'},
     }})};
 
+    static constexpr const fcn_gate BOTTOM_LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0,  0, -1, -1, -1},
+        {-1,  -1, 1,  1,  2},
+    }})};
+
     static constexpr const fcn_gate UPPER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', 'N', 'n', 'n'},
@@ -669,6 +715,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'n', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_gate UPPER_STRAIGHT_INVERTER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 1, 1, 2},
+        {-1, 0, -1, -1, -1},
+        { 0, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
     }})};
 
     static constexpr const fcn_gate TOP_DOWN_BENT_INVERTER{cell_list_to_gate<char>(
@@ -680,6 +735,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, 0, -1, -1, -1},
+        {-1, 0, -1, -1, -1},
+        {-1, 1,  2,  2,  3},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+    }})};
+
     static constexpr const fcn_gate BOTTOM_UP_BENT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -689,6 +753,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', 'N', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1,  1,  2,  2, 3},
+        {-1,  0, -1, -1, -1},
+        {-1,  0, -1, -1, -1},
+    }})};
+
     static constexpr const fcn_gate BOTTOM_LOWER_UP_BENT_INVERTER{cell_list_to_gate<char>(
     {{
         {'N', 'c', 'n', 'N', 'n'},
@@ -696,6 +769,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', ' ', ' ', ' ', ' '},
         {'n', ' ', ' ', ' ', ' '},
         {'N', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_gate BOTTOM_LOWER_UP_BENT_INVERTER_COCK_SCHEME{cell_list_to_gate<char>(
+    {{
+        {2, 3, 3, 0, 0},
+        {1, -1, -1, -1, -1},
+        {1, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1},
     }})};
 
     // ************************************************************
@@ -711,6 +793,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate CROSSWIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 2, -1, -1},
+        { 0, 0, 4, 1, 2},
+        {-1, -1, 3, -1, -1},
+        {-1, -1, 3, -1, -1},
+    }})};
+
     static constexpr const fcn_gate COUPLER{cell_list_to_gate<char>(
     {{
         {' ', ' ', 'N', 'n', 'n'},
@@ -718,6 +809,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'n', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'N', 'n', 'n'},
+    }})};
+
+    static constexpr const fcn_gate COUPLER_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 3, 3, 0},
+        {-1, -1, 2, -1, -1},
+        { 0, 0, 1, -1, -1},
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 3, 3, 0},
     }})};
 
     static constexpr const fcn_gate LOWER_WIRE{cell_list_to_gate<char>(
@@ -729,6 +829,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'n', 'N', 'n', 'n'},
     }})};
 
+    static constexpr const fcn_gate LOWER_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0,  0, 1, 1, 1},
+    }})};
+
     static constexpr const fcn_gate MIDDLER_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -736,6 +845,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'n', 'N', 'n', 'n'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
+    }})};
+    
+    static constexpr const fcn_gate MIDDLER_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0,  0,  1,  1,  1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
     }})};
 
     static constexpr const fcn_gate INPUT_MIDDLER_WIRE{cell_list_to_gate<char>(
@@ -747,6 +865,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate INPUT_MIDDLER_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1,  0,  1,  1,  1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+    }})};
+
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {'N', ' ', ' ', ' ', ' '},
@@ -754,6 +881,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'c', 'n', 'd', 'N'},
         {' ', ' ', ' ', ' ', 'n'},
         {' ', ' ', ' ', ' ', 'N'},
+    }})};
+
+    static constexpr const fcn_gate TOP_DOWN_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1},
+        {1,  2,  2,  3,  0},
+        {-1, -1, -1, -1, 1},
+        {-1, -1, -1, -1, 2},
     }})};
 
     static constexpr const fcn_gate TOP_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
@@ -765,6 +901,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_gate TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 1, 2, 2},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+    }})};
+
     static constexpr const fcn_gate BOTTOM_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', 'N'},
@@ -772,6 +917,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'c', 'n', 'd', 'N'},
         {'n', ' ', ' ', ' ', ' '},
         {'N', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_gate BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, 1},
+        {-1, -1, -1, -1, 0},
+        { 1,  2,  2,  3, 0},
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1},
     }})};
 
     static constexpr const fcn_gate BOTTOM_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
@@ -783,6 +937,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', ' ', ' '}
     }})};
 
+    static constexpr const fcn_gate BOTTOM_RIGHT_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, 1, 2, 2},
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1}
+    }})};
+
     static constexpr const fcn_gate TOP_DOWN_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
         {'N', ' ', ' ', ' ', ' '},
@@ -790,6 +953,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'c', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'N', 'c', 'n'}
+    }})};
+
+    static constexpr const fcn_gate TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1},
+        {1, 1, 2, -1, -1},
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 3, 0, 0}
     }})};
 
     static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE{cell_list_to_gate<char>(
@@ -801,6 +973,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', ' ', ' ', ' ', ' '}
     }})};
 
+    static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 3, 0, 1},
+        {-1, -1, 2, -1, -1},
+        {1, 1, 2, -1, -1},
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1}
+    }})};
+
     static constexpr const fcn_gate BOTTOM_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -808,6 +989,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'd', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'N', 'c', 'n'}
+    }})};
+
+    static constexpr const fcn_gate BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {0, 0, 1, -1, -1},
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 2, 3, 3}
     }})};
 
     static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE{cell_list_to_gate<char>(
@@ -819,6 +1009,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', 'N', ' ', ' '}
     }})};
 
+    static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {0, 0, 1, -1, -1},
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 2, -1, -1}
+    }})};
+
     static constexpr const fcn_gate LEFT_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', 'N', ' ', ' '},
@@ -827,6 +1026,16 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '}
     }})};
+    
+    static constexpr const fcn_gate LEFT_UP_BENT_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {-1, -1, 2, -1, -1},
+        {-1, -1, 1, -1, -1},
+        {0, 0, 1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1}
+    }})};
+
 
     static constexpr const fcn_gate MAJORITY_WIRE{cell_list_to_gate<char>(
     {{
@@ -837,6 +1046,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {' ', ' ', ' ', ' ', ' '}
     }})};
 
+    static constexpr const fcn_gate MAJORITY_WIRE_CLOCK_SCHEME{cell_list_to_gate<int>(
+    {{
+        {0, 0, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1}
+    }})};
+
     static constexpr const fcn_gate COUPLER_WIRE{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -844,6 +1062,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {'N', 'c', 'n', 'N', 'n'},
         {'n', ' ', ' ', ' ', ' '},
         {'N', ' ', ' ', ' ', ' '}
+    }})};
+
+    static constexpr const fcn_gate COUPLER_WIRE_CLOCK_SCHEME{cell_list_to_gate<char>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {1, 2, 2, 3, 3},
+        {0, -1, -1, -1, -1},
+        {0, -1, -1, -1, -1}
     }})};
 
     // clang-format on
@@ -896,6 +1123,53 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
         {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE}};
+
+    static inline const port_gate_map WIRE_CLOCK_SCHEME_MAP = {
+        // straight wires
+        {{{port_position(0, 2)}, {port_position(3, 2)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{}, {port_position(3, 2)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {}}, INPUT_MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(3, 0)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{}, {port_position(3, 0)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(3, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{}, {port_position(3, 3)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{port_position(0, 3)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        // bent wires
+        {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(3, 3)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        // staircase wires
+        {{{port_position(0, 0)}, {port_position(3, 3)}}, TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
+        // special wires
+        {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(3, 2)}}, COUPLER_WIRE_CLOCK_SCHEME},
+        // NOTE more wires go here!
+
+        // NMLIB Tile of 5x5
+        // straight wires
+        {{{port_position(0, 4)}, {port_position(4, 4)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{}, {port_position(4, 4)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 4)}, {}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        // bent wires
+        {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(4, 0)}}, BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(4, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(2, 4)}}, LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        // staircase wires
+        {{{port_position(0, 0)}, {port_position(4, 4)}}, TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
+        // special wires
+        {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE_CLOCK_SCHEME}};
     /**
      * Lookup table for inverter rotations. Maps ports to corresponding inverters.
      */
@@ -914,6 +1188,22 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, 5, 5>
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER}};
+
+    static inline const port_gate_map INVERTER_CLOCK_SCHEME_MAP = {
+        // straight inverters
+        {{{port_position(0, 2)}, {port_position(3, 2)}}, LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(3, 2)}}, BOTTOM_LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(3, 0)}}, UPPER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        // without outputs
+        {{{port_position(0, 2)}, {}}, LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {}}, UPPER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        // without inputs
+        {{{}, {port_position(3, 2)}}, LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{}, {port_position(3, 0)}}, UPPER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        // bent inverters
+        {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME}};
 };
 }  // namespace fiction
 

@@ -141,6 +141,16 @@ class fcn_gate_library
      */
     using fcn_gate = cell_list<typename Technology::cell_type>;
     /**
+     * A `cell_list` is an array of size `GateSizeX` \f$ \times \f$ `GateSizeY` of type `T`.
+     */
+    template <typename T>
+    using cell_clk_sch_list = std::array<std::array<T, GateSizeX>, GateSizeY>;
+    /**
+     * Each gate is thus a `cell_list` of cell types and each cell_type has a clock number associated.
+     */
+    using fcn_clk_sch      = cell_list<int>;
+    using fcn_gate_clk_sch = std::pair<fcn_gate, fcn_clk_sch>;
+    /**
      * Maps truth tables to respective FCN gate implementations.
      */
     using gate_functions =

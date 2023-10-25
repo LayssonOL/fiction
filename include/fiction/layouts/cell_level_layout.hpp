@@ -69,8 +69,10 @@ class cell_level_layout : public ClockedLayout
         const uint16_t tile_size_x;
         const uint16_t tile_size_y;
 
-        phmap::parallel_flat_hash_map<Cell, cell_type> cell_type_map{};
-        phmap::parallel_flat_hash_map<Cell, cell_mode> cell_mode_map{};
+        // Addition to map a clock zone for each cell
+        phmap::parallel_flat_hash_map<Cell, typename ClockedLayout::clock_number_t> cell_clock_map{};
+        phmap::parallel_flat_hash_map<Cell, cell_type>                              cell_type_map{};
+        phmap::parallel_flat_hash_map<Cell, cell_mode>                              cell_mode_map{};
 
         phmap::flat_hash_map<Cell, std::string> cell_name_map{};
 
@@ -362,6 +364,27 @@ class cell_level_layout : public ClockedLayout
     [[nodiscard]] typename ClockedLayout::clock_number_t get_clock_number(const cell& c) const noexcept
     {
         return ClockedLayout::get_clock_number({c.x / strg->tile_size_x, c.y / strg->tile_size_y, c.z});
+    }
+
+    [[nodiscard]] void assign_custom_clock_number(const cell& c, const ClockedLayout::clock_number_t& clk)
+    {
+        if (is_empty_cell(c))
+        {
+            strg->cell_clock_map.erase(c);
+            return;
+        }
+
+        strg->cell_clock_map[c] = clk;
+    }
+    [[nodiscard]] typename ClockedLayout::clock_number_t get_custom_clock_number(const cell& c)
+    {
+
+        if (auto it = strg->cell_clock_map.find(c); it != strg->cell_clock_map.cend())
+        {
+            return it->second;
+        }
+
+        return -1;
     }
     /**
      * Function is deleted for cell-level layouts.
