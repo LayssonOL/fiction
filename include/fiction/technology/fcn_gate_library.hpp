@@ -177,6 +177,12 @@ class fcn_gate_library
     {
         return convert_array_of_arrays<typename Technology::cell_type, T, GateSizeY, GateSizeX>(c);
     }
+
+    template <typename T>
+    static constexpr fcn_clk_sch clock_list_to_clk_sch(const cell_clk_sch_list<T>& c) noexcept
+    {
+        return convert_array_of_arrays<int, T, GateSizeY, GateSizeX>(c);
+    }
     /**
      * Rotates the given `fcn_gate` by 90° clockwise at compile time.
      *
@@ -184,6 +190,11 @@ class fcn_gate_library
      * @return Rotated `fcn_gate`.
      */
     static constexpr fcn_gate rotate_90(const fcn_gate& g) noexcept
+    {
+        return reverse_columns(transpose(g));
+    }
+
+    static constexpr fcn_clk_sch rotate_90(const fcn_clk_sch& g) noexcept
     {
         return reverse_columns(transpose(g));
     }
@@ -197,6 +208,10 @@ class fcn_gate_library
     {
         return reverse_columns(reverse_rows(g));
     }
+    static constexpr fcn_clk_sch rotate_180(const fcn_clk_sch& g) noexcept
+    {
+        return reverse_columns(reverse_rows(g));
+    }
     /**
      * Rotates the given `fcn_gate` by 270° clockwise at compile time.
      *
@@ -204,6 +219,10 @@ class fcn_gate_library
      * @return Rotated `fcn_gate`.
      */
     static constexpr fcn_gate rotate_270(const fcn_gate& g) noexcept
+    {
+        return transpose(reverse_columns(g));
+    }
+    static constexpr fcn_clk_sch rotate_270(const fcn_clk_sch& g) noexcept
     {
         return transpose(reverse_columns(g));
     }
@@ -292,6 +311,21 @@ class fcn_gate_library
 
         return trans;
     }
+
+    static constexpr fcn_clk_sch transpose(const fcn_clk_sch& g) noexcept
+    {
+        auto trans = EMPTY_GATE_CLOCK_SCHEME;
+
+        for (auto x = 0ul; x < GateSizeX; ++x)
+        {
+            for (auto y = 0ul; y < GateSizeY; ++y)
+            {
+                trans[y][x] = g[x][y];
+            }
+        }
+
+        return trans;
+    }
     /**
      * Reverses the columns of the given `fcn_gate` at compile time.
      *
@@ -301,6 +335,16 @@ class fcn_gate_library
     static constexpr fcn_gate reverse_columns(const fcn_gate& g) noexcept
     {
         fcn_gate rev_cols = g;
+
+        std::for_each(std::begin(rev_cols), std::end(rev_cols),
+                      [](auto& i) { std::reverse(std::begin(i), std::end(i)); });
+
+        return rev_cols;
+    }
+
+    static constexpr fcn_clk_sch reverse_columns(const fcn_clk_sch& g) noexcept
+    {
+        fcn_clk_sch rev_cols = g;
 
         std::for_each(std::begin(rev_cols), std::end(rev_cols),
                       [](auto& i) { std::reverse(std::begin(i), std::end(i)); });
@@ -321,12 +365,27 @@ class fcn_gate_library
 
         return rev_rows;
     }
+    static constexpr fcn_clk_sch reverse_rows(const fcn_clk_sch& g) noexcept
+    {
+        fcn_clk_sch rev_rows = g;
+
+        std::reverse(std::begin(rev_rows), std::end(rev_rows));
+
+        return rev_rows;
+    }
     /**
      * Single empty gate in given technology and tile size. Used as a blue print to create new ones in merge and
      * transpose for example.
      */
     static constexpr const fcn_gate EMPTY_GATE =
         fiction::create_array<GateSizeY>(fiction::create_array<GateSizeX>(Technology::cell_type::EMPTY));
+
+    /**
+     * Single empty clock scheme in given technology and tile size. Used as a blue print to create new ones in merge and
+     * transpose for example.
+     */
+    static constexpr const fcn_clk_sch EMPTY_GATE_CLOCK_SCHEME =
+        fiction::create_array<GateSizeY>(fiction::create_array<GateSizeX>(-1));
 };
 
 }  // namespace fiction
