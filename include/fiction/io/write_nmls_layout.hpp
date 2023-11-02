@@ -18,9 +18,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -115,22 +118,22 @@ inline constexpr const char* DIMENSIONS = "{},{},{},{},{},{},";
 // PHASES_SECTION {{{
 //
 inline constexpr const char* PHASES_SECTION =
-    "Phases\nreset;0,0,0;300,0,0;0,0,0;0,0,0;5\nrelax;300,0,0;300,0,0;0,0,0;0,0,0;5 \
-  \nswitch;300,0,0;0,0,0;0,0,0;0,0,0;5\nhold;0,0,0;0,0,0;0,0,0;0,0,0;5";
+    "Phases\nreset;0,0,0,;300,0,0,;0,0,0,;0,0,0,;5\nrelax;300,0,0,;300,0,0,;0,0,0,;0,0,0,;5\nswitch;300,0,0,;0,0,0,;0,"
+    "0,0,;0,0,0,;5\nhold;0,0,0,;0,0,0,;0,0,0,;0,0,0,;5";
 // }}}
 
 // ZONES SECTION {{{
 //
 inline constexpr const char* ZONES_SECTION =
-    "Zones\n0;reset;relax;switch;hold;-16777216\n1;hold;reset;relax;switch;-30208\n2;switch;hold;reset;relax;-14757932 \
-  \n3;relax;switch;hold;reset;-11206444\n4;relax;switch;relax;switch;-11522794";
+    "Zones\n0;reset;relax;switch;hold;-16777216\n1;hold;reset;relax;switch;-30208\n2;switch;hold;reset;relax;-"
+    "14757932\n3;relax;switch;hold;reset;-11206444\n4;relax;switch;relax;switch;-11522794";
 // }}}
 
 inline constexpr const char* MAGNETS_SECTION_HEADER = "Magnets\n{}";
 
 // Magnet Specs {{{
-// Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code
-inline constexpr const char* MAGNET_SPECS = "Magnet_{};{};{};{};{};{};{};{};{};{};{};{};{};";
+// Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code;
+inline constexpr const char* MAGNET_SPECS = "Magnet_{};{};{};{};{};{};{};{};{};{};{};{};";
 // }}}
 
 inline constexpr const char* LAYOUT_ITEM_PROPERTY = "\t\t\t<property name=\"{}\" value=\"{}\"/>\n";
@@ -159,12 +162,14 @@ template <typename Lyt>
 class write_nmls_layout_impl
 {
   public:
-    write_nmls_layout_impl(const Lyt& src, std::ostream& s, write_nmls_layout_params p) :
+    write_nmls_layout_impl(const Lyt& src, const uint32_t critical_path_length, std::ostream& s,
+                           write_nmls_layout_params p) :
             lyt{src},
             bb{lyt},
             sorted_pi_list{sorted_pis()},
             sorted_po_list{sorted_pos()},
             num_magnets{nmlsim_magnet_count(lyt)},
+            critical_path_length{critical_path_length},
             os{s},
             ps{std::move(p)}
     {}
@@ -193,6 +198,8 @@ class write_nmls_layout_impl
     std::vector<cell<Lyt>> sorted_pi_list, sorted_po_list;
 
     const uint64_t num_magnets;
+
+    const uint32_t critical_path_length;
 
     std::ostream& os;
 
@@ -373,18 +380,19 @@ class write_nmls_layout_impl
         std::string cell_str{""};
         std::string magnet_type          = get_magnet_type(cell);
         std::string fixed_magnetization  = magnet_type == "input" ? "true" : "false";
-        const auto& clock_zone           = lyt.get_clock_number(cell);
+        const auto& clock_zone           = lyt.get_custom_clock_number(cell);
         const auto [top_cut, bottom_cut] = get_cell_cuts(cell);
-        const uint32_t cell_abs_x        = nmlib_inml_technology::LAYOUT_BASE_X +
-                                    (cell.x * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH));
+        const uint32_t cell_abs_x =
+            static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_X +
+                               (cell.x * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH)));
         const uint32_t cell_abs_y =
-            nmlib_inml_technology::LAYOUT_BASE_Y +
-            (cell.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::CELL_HEIGHT));
+            static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_Y +
+                               (cell.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::CELL_HEIGHT)));
         std::string magnet_str =
             fmt::format(nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG,
                         fixed_magnetization, nmlib_inml_technology::CELL_WIDTH, nmlib_inml_technology::CELL_HEIGHT,
-                        nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut, cell_abs_x, cell_abs_y,
-                        get_cell_color(clock_zone));
+                        nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut,
+                        fmt::format("{}.0,{}.0", cell_abs_x, cell_abs_y), get_cell_color(clock_zone));
         cell_str += fmt::format(magnet_str);
         idx++;
         return cell_str;
@@ -392,9 +400,12 @@ class write_nmls_layout_impl
 
     void write_header()
     {
+        // To calculate the simulation time we need to calculate the critical path length and multiple it
+        // by the quantity of clock zones (4) and the clock zone delay into nanoseconds (5)
+        auto sim_time = (critical_path_length * 4) * 5;
         os << fmt::format(nmls::NMLS_HEADER, nmls::TECHNOLOGY, nmls::SIMULATION_MODE, nmls::LLG_ENGINE_METHOD,
                           nmls::SIMULATION_EXECUTIONS_QNTD, nmls::REPORT_STEP, nmls::ALPHA,
-                          nmls::SATURATION_MAGNETIZATION, nmls::TEMPERATURE, nmls::TIME_STEP, nmls::SIMULATION_TIME,
+                          nmls::SATURATION_MAGNETIZATION, nmls::TEMPERATURE, nmls::TIME_STEP, sim_time,
                           nmls::SPIN_ANGLE, nmls::SPIN_DIFUSION_LENGTH, nmls::THICKNESS, nmls::NEIGHBORHOOD_RATIO);
     }
 
@@ -406,8 +417,7 @@ class write_nmls_layout_impl
             (nmlib_inml_technology::BIG_CELL_HEIGHT + nmlib_inml_technology::CELL_VSPACE) * bb.get_max().y;
 
         os << "\n"
-           << fmt::format(nmls::DIMENSIONS, LAYOUT_HEIGHT, LAYOUT_WIDTH, nmlib_inml_technology::CELL_HSPACE,
-                          nmlib_inml_technology::CELL_VSPACE,
+           << fmt::format(nmls::DIMENSIONS, LAYOUT_WIDTH, LAYOUT_HEIGHT, "10", "10",
                           (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH),
                           (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::BIG_CELL_HEIGHT));
     }
@@ -447,12 +457,13 @@ class write_nmls_layout_impl
  * @param ps Parameters.
  */
 template <typename Lyt>
-void write_nmls_layout(const Lyt& lyt, std::ostream& os, write_nmls_layout_params ps = {})
+void write_nmls_layout(const Lyt& lyt, const uint32_t critical_path_length, std::ostream& os,
+                       write_nmls_layout_params ps = {})
 {
     static_assert(is_cell_level_layout_v<Lyt>, "Lyt is not a cell-level layout");
     static_assert(has_nmlib_inml_technology_v<Lyt>, "Lyt must be an iNML layout");
 
-    detail::write_nmls_layout_impl p{lyt, os, ps};
+    detail::write_nmls_layout_impl p{lyt, critical_path_length, os, ps};
 
     p.run();
 }
@@ -468,7 +479,8 @@ void write_nmls_layout(const Lyt& lyt, std::ostream& os, write_nmls_layout_param
  * @param ps Parameters.
  */
 template <typename Lyt>
-void write_nmls_layout(const Lyt& lyt, const std::string_view& filename, write_nmls_layout_params ps = {})
+void write_nmls_layout(const Lyt& lyt, const uint32_t critical_path_length, const std::string_view& filename,
+                       write_nmls_layout_params ps = {})
 {
     std::ofstream os{filename.data(), std::ofstream::out};
 
@@ -479,7 +491,7 @@ void write_nmls_layout(const Lyt& lyt, const std::string_view& filename, write_n
 
     ps.filename = filename;
 
-    write_nmls_layout(lyt, os, ps);
+    write_nmls_layout(lyt, critical_path_length, os, ps);
     os.close();
 }
 
