@@ -366,7 +366,7 @@ class cell_level_layout : public ClockedLayout
         return ClockedLayout::get_clock_number({c.x / strg->tile_size_x, c.y / strg->tile_size_y, c.z});
     }
 
-    [[nodiscard]] void assign_custom_clock_number(const cell& c, const ClockedLayout::clock_number_t& clk)
+    [[nodiscard]] void assign_custom_clock_number(const cell& c, const ClockedLayout::clock_number_t& clk) noexcept
     {
         if (is_empty_cell(c))
         {
@@ -376,7 +376,8 @@ class cell_level_layout : public ClockedLayout
 
         strg->cell_clock_map[c] = clk;
     }
-    [[nodiscard]] typename ClockedLayout::clock_number_t get_custom_clock_number(const cell& c)
+
+    [[nodiscard]] typename ClockedLayout::clock_number_t get_custom_clock_number(const cell& c) const noexcept
     {
 
         if (auto it = strg->cell_clock_map.find(c); it != strg->cell_clock_map.cend())
