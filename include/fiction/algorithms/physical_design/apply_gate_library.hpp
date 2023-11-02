@@ -14,6 +14,8 @@
 
 #include <mockturtle/traits.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <type_traits>
 
 #if (PROGRESS_BARS)
@@ -61,7 +63,15 @@ class apply_gate_library_impl
                         relative_to_absolute_cell_position<GateLibrary::gate_x_size(), GateLibrary::gate_y_size(),
                                                            GateLyt, CellLyt>(gate_lyt, t, cell<CellLyt>{0, 0});
 
-                    assign_gate(c, GateLibrary::set_up_gate(gate_lyt, t), n);
+                    const auto tp        = GateLibrary::set_up_gate(gate_lyt, t);
+                    auto       tile      = std::get<0>(tp);
+                    auto       pred_tile = std::get<1>(tp);
+
+                    auto pr           = std::get<2>(tp);
+                    auto gate         = pr.first;
+                    auto clock_scheme = pr.second;
+
+                    assign_gate(c, pred_tile, tile, pr, n);
                 }
 #if (PROGRESS_BARS)
                 // update progress
@@ -87,8 +97,8 @@ class apply_gate_library_impl
     GateLyt gate_lyt;
     CellLyt cell_lyt;
 
-    void assign_gate(const cell<CellLyt>& c, const typename GateLibrary::fcn_gate_clk_sch& gclk,
-                     const mockturtle::node<GateLyt>& n)
+    void assign_gate(const cell<CellLyt>& c, const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
+                     const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n)
     {
         auto start_x = c.x;
         auto start_y = c.y;
@@ -102,11 +112,15 @@ class apply_gate_library_impl
             {
                 const cell<CellLyt> pos{start_x + x, start_y + y, layer};
                 const auto          type{g[y][x]};
+                const auto          cellclk{clk[y][x]};
 
                 if (!technology<CellLyt>::is_empty_cell(type))
                 {
+                    // std::cout << "Magnet_" << pos << " - type: " << type << " - clock_zone: " << cellclk <<
+                    // std::endl;
                     cell_lyt.assign_cell_type(pos, type);
-                    cell_lyt.assign_custom_clock_number(pos, clk);
+                    auto checked_clk_zone = assign_clock_zones(pred_tile, tile, gclk);
+                    cell_lyt.assign_custom_clock_number(pos, checked_clk_zone);
                 }
 
                 // set IO names
@@ -116,6 +130,55 @@ class apply_gate_library_impl
                 }
             }
         }
+    }
+
+    GateLibrary::fcn_clk_sch assign_clock_zones(const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
+                                                const typename GateLibrary::fcn_clk_sch& gclk)
+    {
+        // If the predecessor tile is an empty tile
+        // returns the predefined clock scheme
+        if (gate_lyt.is_empty_tile(pred_tile))
+        {
+            return gclk;
+        }
+
+        const auto        pred_tile_clock_scheme = GateLibrary::get_tile_clk_sch(pred_tile);
+        std::vector<auto> out_clock_zones{};
+        for (auto out : pred_tile.out)
+        {
+            auto pred_clk = pred_tile_clock_scheme[out.x][out.y];
+            out_clock_zones.push_back(pred_clk);
+        }
+
+        uint16_t pred_biggest_clk_number{0};
+        for (auto clock_zone : out_clock_zones)
+        {
+            if (clock_zone > pred_biggest_clk_number)
+            {
+                pred_biggest_clk_number = clock_zone;
+            }
+        }
+
+        auto       gate_clk_sch      = gclk;
+        const auto tile_inp          = gate_lyt.get_node(tile).inp.begin();
+        auto       gate_inp_clk_zone = gate_clk_sch[tile_inp.x][tile_inp.y];
+
+        if (pred_biggest_clk_number >= gate_inp_clk_zone)
+        {
+            auto clk_delta = std::abs(pred_biggest_clk_number - gate_inp_clk_zone);
+            for (size_t y{0}; y < gate_clk_sch.size(); ++y)
+            {
+                for (size_t x{0}; x < gate_clk_sch[y].size(); ++x)
+                {
+                    if (gate_clk_sch[x][y] != -1)
+                    {
+                        gate_clk_sch[x][y] = gate_clk_sch[x][y] + clk_delta;
+                    }
+                }
+            }
+        }
+
+        return gate_clk_sch;
     }
 };
 
