@@ -46,15 +46,34 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
      * @param t Tile to be realized as a NMLib gate.
      * @return NMLib gate representation of `t` including I/Os, rotation, etc.
      */
-    template <typename GateLyt>
-    [[nodiscard]] static fcn_clk_sch get_tile_clk_sch(const tile<GateLyt>& t)
+    [[nodiscard]] static bool is_crosswire(const fcn_gate& cell)
     {
-        return WIRE_CLOCK_SCHEME_MAP.at(t);
+        for (size_t y{0}; y < NMLIB_TILE_HEIGHT; ++y)
+        {
+            for (size_t x{0}; x < NMLIB_TILE_WIDTH; ++x)
+            {
+                if (cell[y][x] != CROSSWIRE[y][x])
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    [[nodiscard]] static fcn_clk_sch get_crosswire_clock_scheme(const uint16_t& pred_clock_number)
+    {
+        if (pred_clock_number == 1 || pred_clock_number == 2)
+        {
+            return CROSSWIRE_CLOCK_SCHEME_II;
+        }
+        else
+        {
+            return CROSSWIRE_CLOCK_SCHEME;
+        }
     }
 
     template <typename GateLyt>
-    [[nodiscard]] static std::tuple<tile<GateLyt>, tile<GateLyt>, fcn_gate_clk_sch> set_up_gate(const GateLyt& lyt,
-                                                                                                const tile<GateLyt>& t)
+    [[nodiscard]] static std::tuple<tile<GateLyt>, tile<GateLyt>, port_list<port_position>, fcn_gate_clk_sch>
+    set_up_gate(const GateLyt& lyt, const tile<GateLyt>& t)
     {
         static_assert(is_gate_level_layout_v<GateLyt>, "Lyt must be a gate-level layout");
         // static_assert(is_shifted_cartesian_layout_v<GateLyt>, "Lyt must be a shifted Cartesian layout");
@@ -62,7 +81,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // crossing magnets are handled only in the ground layer
         if (lyt.is_crossing_layer(t))
         {
-            return {t, {}, std::make_pair(EMPTY_GATE, EMPTY_GATE_CLOCK_SCHEME)};
+            port_list<port_position> pl = {{port_position(0, 0)}, {port_position(0, 0)}};
+            return {t, {}, pl, std::make_pair(EMPTY_GATE, EMPTY_GATE_CLOCK_SCHEME)};
         }
 
         const auto n = lyt.get_node(t);
@@ -71,28 +91,33 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {
             if (lyt.is_fanout(n))
             {
-                return {t, {}, std::make_pair(COUPLER, COUPLER_WIRE_CLOCK_SCHEME)};
+                port_list<port_position> pl = {{port_position(0, 2)}, {port_position(4, 0), port_position(4, 4)}};
+                return {t, {}, pl, std::make_pair(COUPLER, COUPLER_WIRE_CLOCK_SCHEME)};
             }
         }
         if constexpr (mockturtle::has_is_and_v<GateLyt>)
         {
             if (lyt.is_and(n))
             {
-                return {t, {}, std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME)};
+                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
+                return {t, {}, pl, std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME)};
             }
         }
         if constexpr (mockturtle::has_is_or_v<GateLyt>)
         {
             if (lyt.is_or(n))
             {
-                return {t, {}, std::make_pair(DISJUNCTION, DISJUNCTION_CLOCK_SCHEME)};
+                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
+                return {t, {}, pl, std::make_pair(DISJUNCTION, DISJUNCTION_CLOCK_SCHEME)};
             }
         }
         if constexpr (mockturtle::has_is_maj_v<GateLyt>)
         {
             if (lyt.is_maj(n))
             {
-                return {t, {}, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
+                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(2, 4)},
+                                               {port_position(4, 2)}};
+                return {t, {}, pl, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
             }
         }
 
@@ -106,7 +131,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (lyt.is_inv(n))
                 {
-                    return {t, pred_tile, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
+                    return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
 
@@ -120,7 +145,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        return {t, pred_tile, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
+                        return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
                     auto wire            = WIRE_MAP.at(p);
@@ -138,7 +163,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                         const auto out_mark_pos = p.out.empty() ? opposite(*p.inp.begin()) : *p.out.begin();
                         wire = mark_cell(wire, out_mark_pos, nmlib_inml_technology::cell_mark::OUTPUT);
                     }
-                    return {t, pred_tile, std::make_pair(wire, wire_clk_scheme)};
+                    return {t, pred_tile, p, std::make_pair(wire, wire_clk_scheme)};
                 }
             }
         }
@@ -828,6 +853,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         { 0, 0, 4, 1, 2},
         {-1, -1, 3, -1, -1},
         {-1, -1, 3, -1, -1},
+    }})};
+
+    static constexpr const fcn_clk_sch CROSSWIRE_CLOCK_SCHEME_II{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1},
+        { 2, 2, 4, 3, 0},
+        {-1, -1, 1, -1, -1},
+        {-1, -1, 1, -1, -1},
     }})};
 
     static constexpr const fcn_gate COUPLER{cell_list_to_gate<char>(
