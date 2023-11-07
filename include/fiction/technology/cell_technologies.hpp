@@ -435,26 +435,26 @@ struct nmlib_inml_technology
     {
         switch (c)
         {
-            case LITTLE:
-            case LITTLE_INPUT:
-            case LITTLE_OUTPUT:
-            case LITTLE_SLANTED_EDGE_RIGHT_UP_MAGNET:
-            case LITTLE_SLANTED_EDGE_LEFT_UP_MAGNET:
-            case LITTLE_SLANTED_EDGE_LEFT_DOWN_MAGNET:
-            case LITTLE_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
-            case LITTLE_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
-            case LITTLE_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return LITTLE_CELL_HEIGHT; break;
+            case cell_type::LITTLE:
+            case cell_type::LITTLE_INPUT:
+            case cell_type::LITTLE_OUTPUT:
+            case cell_type::LITTLE_SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case cell_type::LITTLE_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case cell_type::LITTLE_SLANTED_EDGE_LEFT_UP_MAGNET:
+            case cell_type::LITTLE_SLANTED_EDGE_LEFT_DOWN_MAGNET:
+            case cell_type::LITTLE_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
+            case cell_type::LITTLE_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return LITTLE_CELL_HEIGHT;
 
-            case BIG:
-            case BIG_INPUT:
-            case BIG_OUTPUT:
-            case BIG_SLANTED_EDGE_RIGHT_UP_MAGNET:
-            case BIG_SLANTED_EDGE_LEFT_UP_MAGNET:
-            case BIG_SLANTED_EDGE_LEFT_DOWN_MAGNET:
-            case BIG_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
-            case BIG_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
-            case BIG_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return BIG_CELL_HEIGHT; break;
-            default: return CELL_HEIGHT; break;
+            case cell_type::BIG:
+            case cell_type::BIG_INPUT:
+            case cell_type::BIG_OUTPUT:
+            case cell_type::BIG_SLANTED_EDGE_RIGHT_UP_MAGNET:
+            case cell_type::BIG_SLANTED_EDGE_LEFT_UP_MAGNET:
+            case cell_type::BIG_SLANTED_EDGE_LEFT_DOWN_MAGNET:
+            case cell_type::BIG_SLANTED_EDGE_RIGHT_DOWN_MAGNET:
+            case cell_type::BIG_SLANTED_EDGE_LEFT_UP_AND_DOWN_MAGNET:
+            case cell_type::BIG_SLANTED_EDGE_RIGHT_UP_AND_DOWN_MAGNET: return BIG_CELL_HEIGHT;
+            default: return CELL_HEIGHT;
         }
     }
 

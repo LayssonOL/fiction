@@ -377,22 +377,25 @@ class write_nmls_layout_impl
     [[nodiscard]] std::string get_cell_specs_str(const auto& cell, auto& idx) const
     {
         // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code
-        std::string cell_str{""};
-        std::string magnet_type          = get_magnet_type(cell);
-        std::string fixed_magnetization  = magnet_type == "input" ? "true" : "false";
-        const auto& clock_zone           = lyt.get_custom_clock_number(cell);
+        std::string                             cell_str{""};
+        std::string                             magnet_type         = get_magnet_type(cell);
+        std::string                             fixed_magnetization = magnet_type == "input" ? "true" : "false";
+        const auto&                             clock_zone          = lyt.get_custom_clock_number(cell);
+        const nmlib_inml_technology::cell_type& ctype               = lyt.get_cell_type(cell);
+
+        const uint64_t cell_height = nmlib_inml_technology::get_cell_height(ctype);
+
         const auto [top_cut, bottom_cut] = get_cell_cuts(cell);
         const uint32_t cell_abs_x =
             static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_X +
                                (cell.x * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH)));
-        const uint32_t cell_abs_y =
-            static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_Y +
-                               (cell.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::CELL_HEIGHT)));
-        std::string magnet_str =
-            fmt::format(nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG,
-                        fixed_magnetization, nmlib_inml_technology::CELL_WIDTH, nmlib_inml_technology::CELL_HEIGHT,
-                        nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut,
-                        fmt::format("{}.0,{}.0", cell_abs_x, cell_abs_y), get_cell_color(clock_zone));
+        const uint32_t cell_abs_y = static_cast<float>(
+            nmlib_inml_technology::LAYOUT_BASE_Y +
+            (cell.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::BIG_CELL_HEIGHT)));
+        std::string magnet_str = fmt::format(
+            nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG, fixed_magnetization,
+            nmlib_inml_technology::CELL_WIDTH, cell_height, nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut,
+            fmt::format("{}.0,{}.0", cell_abs_x, cell_abs_y), get_cell_color(clock_zone));
         cell_str += fmt::format(magnet_str);
         idx++;
         return cell_str;
@@ -402,7 +405,7 @@ class write_nmls_layout_impl
     {
         // To calculate the simulation time we need to calculate the critical path length and multiple it
         // by the quantity of clock zones (4) and the clock zone delay into nanoseconds (5)
-        auto sim_time = (critical_path_length * 4) * 5;
+        auto sim_time = 40 + (critical_path_length * 20);
         os << fmt::format(nmls::NMLS_HEADER, nmls::TECHNOLOGY, nmls::SIMULATION_MODE, nmls::LLG_ENGINE_METHOD,
                           nmls::SIMULATION_EXECUTIONS_QNTD, nmls::REPORT_STEP, nmls::ALPHA,
                           nmls::SATURATION_MAGNETIZATION, nmls::TEMPERATURE, nmls::TIME_STEP, sim_time,
@@ -411,9 +414,11 @@ class write_nmls_layout_impl
 
     void write_dimensions()
     {
-        auto LAYOUT_WIDTH = (nmlib_inml_technology::CELL_WIDTH + nmlib_inml_technology::CELL_HSPACE) * bb.get_max().x;
+        auto LAYOUT_WIDTH = 3 * (nmlib_inml_technology::CELL_WIDTH + nmlib_inml_technology::CELL_HSPACE) +
+                            (nmlib_inml_technology::CELL_WIDTH + nmlib_inml_technology::CELL_HSPACE) * bb.get_max().x;
 
         auto LAYOUT_HEIGHT =
+            3 * (nmlib_inml_technology::BIG_CELL_HEIGHT + nmlib_inml_technology::CELL_VSPACE) +
             (nmlib_inml_technology::BIG_CELL_HEIGHT + nmlib_inml_technology::CELL_VSPACE) * bb.get_max().y;
 
         os << "\n"

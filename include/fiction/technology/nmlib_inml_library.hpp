@@ -1048,7 +1048,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {'n', '7', 'N', ' ', ' '},
+        {'6', '7', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'N', '6', 'n'}
     }})};
@@ -1067,8 +1067,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {'n', '7', 'N', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' '}
+        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '}
     }})};
 
     static constexpr const fcn_clk_sch LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
@@ -1082,8 +1082,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
     static constexpr const fcn_gate LEFT_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
         {'n', '7', 'N', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '}
