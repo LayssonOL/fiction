@@ -143,19 +143,6 @@ inline constexpr const char* PROPERTY_LENGTH      = "length";
 inline constexpr const std::array<const char*, 6> COMPONENTS{"Magnet", "Coupler",  "Cross Wire",
                                                              "And",    "Inverter", "Or"};
 
-static const std::unordered_map<nmlib_inml_technology::cell_type, uint8_t> COMPONENT_SELECTOR{
-    {nmlib_inml_technology::cell_type::NORMAL, 0},
-    {nmlib_inml_technology::cell_type::INPUT, 0},
-    {nmlib_inml_technology::cell_type::OUTPUT, 0},
-    {nmlib_inml_technology::cell_type::FANOUT_COUPLER_MAGNET, 1},
-    {nmlib_inml_technology::cell_type::CROSSWIRE_MAGNET, 2},
-    {nmlib_inml_technology::cell_type::SLANTED_EDGE_LEFT_DOWN_MAGNET, 3},
-    {nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_DOWN_MAGNET, 4},
-    {nmlib_inml_technology::cell_type::INVERTER_MAGNET, 5},
-    {nmlib_inml_technology::cell_type::SLANTED_EDGE_LEFT_UP_MAGNET, 6},
-    {nmlib_inml_technology::cell_type::SLANTED_EDGE_RIGHT_UP_MAGNET, 7},
-};
-
 }  // namespace nmls
 
 template <typename Lyt>

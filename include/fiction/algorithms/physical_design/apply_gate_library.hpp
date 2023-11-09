@@ -153,24 +153,11 @@ class apply_gate_library_impl
         auto gclk = gpair.second;
         std::cout << " ## FCN GATE TYPE: " << fmt::format("{}", typeid(cell).name()) << std::endl;
         std::cout << " ## FCN GATE CLK SCH TYPE: " << fmt::format("{}", typeid(gclk).name()) << std::endl;
-
-        const auto pred_tile_pair      = tile_gate_cell_layout_map.at(pred_tile);
-        const auto pred_tile_port_list = pred_tile_pair.first;
-        const auto pred_tile_clk_sch   = pred_tile_pair.second;
-
+        const auto                 pred_tile_pair      = tile_gate_cell_layout_map.at(pred_tile);
+        const auto                 pred_tile_port_list = pred_tile_pair.first;
+        const auto                 pred_tile_clk_sch   = pred_tile_pair.second;
         std::vector<port_position> vc(pred_tile_port_list.out.begin(), pred_tile_port_list.out.end());
         std::cout << " ## Pred OUT PORTS: " << fmt::format("{}", vc) << std::endl;
-        uint16_t pred_biggest_clk_number{pred_tile_clk_sch[2][4]};
-        for (auto out : vc)
-        {
-            auto clock_zone = pred_tile_clk_sch[out.y][out.x];
-            if (clock_zone > pred_biggest_clk_number)
-            {
-                pred_biggest_clk_number = clock_zone;
-            }
-        }
-        std::cout << " ## Pred Tile OUT CLK ZONES: " << fmt::format("{}", pred_tile_clk_sch) << std::endl;
-        std::cout << " ## Pred Biggest CLK NUMBER: " << fmt::format("{}", pred_biggest_clk_number) << std::endl;
 
         std::cout << "\n ## Tile: " << fmt::format("{}", tile) << std::endl;
         auto                       gate_clk_sch  = gclk;
@@ -178,6 +165,16 @@ class apply_gate_library_impl
         std::vector<port_position> tile_inp(tile_portlist.inp.begin(), tile_portlist.inp.end());
         const auto                 first_inp = tile_inp[0];
         std::cout << " ## Tile FIRST INP : " << fmt::format("{}", first_inp) << std::endl;
+
+        uint16_t pred_biggest_clk_number{pred_tile_clk_sch[2][4]};
+        // if (tile_inp.size() == 1)
+        // {
+        auto oppositePort       = GateLibrary::opposite(first_inp);
+        pred_biggest_clk_number = pred_tile_clk_sch[oppositePort.y][oppositePort.x];
+        // }
+
+        std::cout << " ## Pred Tile OUT CLK ZONES: " << fmt::format("{}", pred_tile_clk_sch) << std::endl;
+        std::cout << " ## Pred Biggest CLK NUMBER: " << fmt::format("{}", pred_biggest_clk_number) << std::endl;
 
         auto gate_inp_clk_zone = gclk[first_inp.y][first_inp.x];
         std::cout << " ## Tile INP CLK SCH: " << fmt::format("{}", gate_inp_clk_zone) << std::endl;

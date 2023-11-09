@@ -71,6 +71,21 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         }
     }
 
+    static port_position opposite(const port_position& p)
+    {
+        using port_port_map = phmap::flat_hash_map<port_position, port_position>;
+
+        static const port_port_map pp_map = {
+            {port_position(0, 0), port_position(4, 0)}, {port_position(0, 1), port_position(4, 1)},
+            {port_position(0, 2), port_position(4, 2)}, {port_position(0, 3), port_position(4, 3)},
+            {port_position(0, 4), port_position(4, 4)}, {port_position(4, 0), port_position(0, 0)},
+            {port_position(4, 1), port_position(0, 1)}, {port_position(4, 2), port_position(0, 2)},
+            {port_position(4, 3), port_position(0, 3)}, {port_position(4, 4), port_position(0, 4)},
+            {port_position(2, 0), port_position(2, 4)}, {port_position(2, 4), port_position(2, 0)}};
+
+        return pp_map.at(p);
+    }
+
     template <typename GateLyt>
     [[nodiscard]] static std::tuple<tile<GateLyt>, tile<GateLyt>, port_list<port_position>, fcn_gate_clk_sch>
     set_up_gate(const GateLyt& lyt, const tile<GateLyt>& t)
@@ -145,12 +160,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
+                        auto crosswire_print = fmt::format("\nCROSSWIRE: {} - INP: {} - OUT: {}", a, p.inp, p.out);
+                        std::cout << crosswire_print << std::endl;
                         return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
                     auto wire            = WIRE_MAP.at(p);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    auto wire_print      = fmt::format("WIRE: {} - INP: {} - OUT: {}", wire, p.inp, p.out);
+                    auto wire_print      = fmt::format("\nWIRE: {} - INP: {} - OUT: {}", wire, p.inp, p.out);
                     std::cout << wire_print << std::endl;
 
                     if (lyt.is_pi(n))
@@ -650,21 +667,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         return std::make_pair(pred_tile, p);
     }
 
-    static port_position opposite(const port_position& p)
-    {
-        using port_port_map = phmap::flat_hash_map<port_position, port_position>;
-
-        static const port_port_map pp_map = {
-            {port_position(0, 0), port_position(4, 0)}, {port_position(0, 1), port_position(4, 1)},
-            {port_position(0, 2), port_position(4, 2)}, {port_position(0, 3), port_position(4, 3)},
-            {port_position(0, 4), port_position(4, 4)}, {port_position(4, 0), port_position(0, 0)},
-            {port_position(4, 1), port_position(0, 1)}, {port_position(4, 2), port_position(0, 2)},
-            {port_position(4, 3), port_position(0, 3)}, {port_position(4, 4), port_position(0, 4)},
-            {port_position(2, 0), port_position(2, 4)}, {port_position(2, 4), port_position(2, 0)}};
-
-        return pp_map.at(p);
-    }
-
     // clang-format off
 
     // ************************************************************
@@ -839,11 +841,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
     static constexpr const fcn_gate CROSSWIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {'n', 'd', 'n', 'c', 'n'},
         {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch CROSSWIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
