@@ -969,7 +969,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     {{
         {-1, -1, 0, -1, -1},
         {-1, -1, 0, -1, -1},
-        {-1, -1, 1, 2, 2},
+        {-1, -1, 1, 2, 3},
         {-1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1},
     }})};
