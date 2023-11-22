@@ -111,6 +111,12 @@ class apply_gate_library_impl
         auto g                = gclk.first;
         auto clk              = gclk.second;
         auto checked_clk_zone = assign_clock_zones(pred_tile, tile, gclk);
+        std::cout << " ################# ASSIGN GATE BEGIN #################" << std::endl;
+        std::cout << " \n NODE: " << fmt::format("{}", n) << std::endl;
+        std::cout << " IS GATE: " << fmt::format("{}", this->gate_lyt.is_gate(n)) << std::endl;
+        std::cout << " IS WIRE: " << fmt::format("{}", this->gate_lyt.is_wire(n)) << std::endl;
+        std::cout << " PRED TILE: " << fmt::format("{}", pred_tile) << std::endl;
+        std::cout << " TILE: " << fmt::format("{}", tile) << std::endl;
 
         for (auto y = 0ul; y < g.size(); ++y)
         {
@@ -122,8 +128,6 @@ class apply_gate_library_impl
 
                 if (!technology<CellLyt>::is_empty_cell(type))
                 {
-                    // std::cout << "Magnet_" << pos << " - type: " << type << " - clock_zone: " << cellclk <<
-                    // std::endl;
                     cell_lyt.assign_cell_type(pos, type);
                     cell_lyt.assign_custom_clock_number(pos, cellclk);
                 }
@@ -135,6 +139,7 @@ class apply_gate_library_impl
                 }
             }
         }
+        std::cout << " ################# ASSIGN GATE END #################" << std::endl;
     }
 
     GateLibrary::fcn_clk_sch assign_clock_zones(const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
@@ -146,38 +151,40 @@ class apply_gate_library_impl
         {
             return gpair.second;
         }
+
         std::cout << "\n\n ########## ASSIGN CLOCK ZONES #################" << std::endl;
-        std::cout << "\n ## Pred Tile: " << fmt::format("{}", pred_tile) << std::endl;
+        // std::cout << "\n ## Pred Tile: " << fmt::format("{}", pred_tile) << std::endl;
 
         auto cell = gpair.first;
         auto gclk = gpair.second;
-        std::cout << " ## FCN GATE TYPE: " << fmt::format("{}", typeid(cell).name()) << std::endl;
-        std::cout << " ## FCN GATE CLK SCH TYPE: " << fmt::format("{}", typeid(gclk).name()) << std::endl;
+        // std::cout << " ## FCN GATE TYPE: " << fmt::format("{}", typeid(cell).name()) << std::endl;
+        // std::cout << " ## FCN GATE CLK SCH TYPE: " << fmt::format("{}", typeid(gclk).name()) << std::endl;
         const auto                 pred_tile_pair      = tile_gate_cell_layout_map.at(pred_tile);
         const auto                 pred_tile_port_list = pred_tile_pair.first;
         const auto                 pred_tile_clk_sch   = pred_tile_pair.second;
         std::vector<port_position> vc(pred_tile_port_list.out.begin(), pred_tile_port_list.out.end());
-        std::cout << " ## Pred OUT PORTS: " << fmt::format("{}", vc) << std::endl;
+        // std::cout << " ## Pred OUT PORTS: " << fmt::format("{}", vc) << std::endl;
 
-        std::cout << "\n ## Tile: " << fmt::format("{}", tile) << std::endl;
+        // std::cout << "\n ## Tile: " << fmt::format("{}", tile) << std::endl;
         auto                       gate_clk_sch  = gclk;
         const auto                 tile_portlist = tile_gate_cell_layout_map.at(tile).first;
         std::vector<port_position> tile_inp(tile_portlist.inp.begin(), tile_portlist.inp.end());
         const auto                 first_inp = tile_inp[0];
-        std::cout << " ## Tile FIRST INP : " << fmt::format("{}", first_inp) << std::endl;
+        // std::cout << " ## Tile FIRST INP : " << fmt::format("{}", first_inp) << std::endl;
 
         uint16_t pred_biggest_clk_number{pred_tile_clk_sch[2][4]};
+
         // if (tile_inp.size() == 1)
         // {
         auto oppositePort       = GateLibrary::opposite(first_inp);
         pred_biggest_clk_number = pred_tile_clk_sch[oppositePort.y][oppositePort.x];
         // }
 
-        std::cout << " ## Pred Tile OUT CLK ZONES: " << fmt::format("{}", pred_tile_clk_sch) << std::endl;
-        std::cout << " ## Pred Biggest CLK NUMBER: " << fmt::format("{}", pred_biggest_clk_number) << std::endl;
+        // std::cout << " ## Pred Tile OUT CLK ZONES: " << fmt::format("{}", pred_tile_clk_sch) << std::endl;
+        // std::cout << " ## Pred Biggest CLK NUMBER: " << fmt::format("{}", pred_biggest_clk_number) << std::endl;
 
         auto gate_inp_clk_zone = gclk[first_inp.y][first_inp.x];
-        std::cout << " ## Tile INP CLK SCH: " << fmt::format("{}", gate_inp_clk_zone) << std::endl;
+        // std::cout << " ## Tile INP CLK SCH: " << fmt::format("{}", gate_inp_clk_zone) << std::endl;
 
         if (gate_inp_clk_zone != (pred_biggest_clk_number + 1))
         {
@@ -201,11 +208,11 @@ class apply_gate_library_impl
                 }
             }
 
-            std::cout << " ## BEFORE : " << fmt::format("{}", gclk) << std::endl;
-            std::cout << " ## AFTER : " << fmt::format("{}", gate_clk_sch) << std::endl;
+            // std::cout << " ## BEFORE : " << fmt::format("{}", gclk) << std::endl;
+            // std::cout << " ## AFTER : " << fmt::format("{}", gate_clk_sch) << std::endl;
             tile_gate_cell_layout_map[tile] = std::make_pair(tile_portlist, gate_clk_sch);
         }
-        std::cout << "==================== ASSIGN CLOCK ZONES ====================" << std::endl;
+        // std::cout << "==================== ASSIGN CLOCK ZONES ====================" << std::endl;
 
         return gate_clk_sch;
     }
