@@ -160,15 +160,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        auto crosswire_print = fmt::format("\nCROSSWIRE: {} - INP: {} - OUT: {}", a, p.inp, p.out);
-                        std::cout << crosswire_print << std::endl;
+                        // auto crosswire_print = fmt::format("\nCROSSWIRE: {} - INP: {} - OUT: {}", a, p.inp, p.out);
+                        // std::cout << crosswire_print << std::endl;
                         return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
                     auto wire            = WIRE_MAP.at(p);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    auto wire_print      = fmt::format("\nWIRE: {} - INP: {} - OUT: {}", wire, p.inp, p.out);
-                    std::cout << wire_print << std::endl;
+                    // auto wire_print      = fmt::format("\nWIRE: {} - INP: {} - OUT: {}", wire, p.inp, p.out);
+                    // std::cout << wire_print << std::endl;
 
                     if (lyt.is_pi(n))
                     {
