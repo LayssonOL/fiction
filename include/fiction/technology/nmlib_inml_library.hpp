@@ -139,6 +139,9 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto pair      = determine_port_routing(lyt, t);
         const auto p         = pair.second;
         const auto pred_tile = pair.first;
+        FMTPRINT(" ==> Pair first inp: ", p.inp);
+        FMTPRINT(" ==> Pair first out: ", p.out);
+        std::cout << " ==> Pair second: " << pred_tile << std::endl;
 
         try
         {
@@ -146,6 +149,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (lyt.is_inv(n))
                 {
+                    LOG("IS INV");
                     return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
@@ -534,6 +538,78 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 p.out.emplace(4u, 2u);
             }
         }
+        else if (lyt.is_inv(n) && !lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
+        {
+            // inputs
+            if (lyt.has_northern_incoming_signal(t))
+            {
+                pred_tile.y = pred_tile.y - 1;
+                p.inp.emplace(2u, 0u);
+            }
+            else if (lyt.has_southern_incoming_signal(t))
+            {
+                pred_tile.y = pred_tile.y + 1;
+                p.inp.emplace(2u, 4u);
+            }
+            else if (lyt.has_south_western_incoming_signal(t))
+            {
+
+                pred_tile.y = pred_tile.y + 1;
+                pred_tile.x = pred_tile.x - 1;
+                // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
+                if (has_and_or_maj_fanin(lyt, n))
+                {
+                    p.inp.emplace(0u, 4u);
+                }
+                else
+                {
+                    p.inp.emplace(0u, 2u);
+                }
+            }
+            else
+            {
+                pred_tile.x = pred_tile.x - 1;
+                p.inp.emplace(0u, 2u);
+            }
+
+            // outputs
+            if (lyt.has_northern_outgoing_signal(t))
+            {
+                // special case: if northern tile is MAJ, output port is at (1,0)
+                if (lyt.is_maj(lyt.get_node(lyt.north(t))))
+                {
+                    p.out.emplace(1u, 0u);
+                }
+                else
+                {
+                    p.out.emplace(4u, 0u);
+                }
+            }
+            else if (lyt.has_southern_outgoing_signal(t))
+            {
+                p.out.emplace(2u, 4u);
+            }
+            else if (lyt.has_north_eastern_outgoing_signal(t))
+            {
+                p.out.emplace(4u, 0u);
+            }
+            else if (lyt.has_south_eastern_outgoing_signal(t))
+            {
+                // special case: if successor is a fanout, output port is at (3,3)
+                if (has_fanout_fanout(lyt, n))
+                {
+                    p.out.emplace(4u, 4u);
+                }
+                else
+                {
+                    p.out.emplace(4u, 2u);
+                }
+            }
+            else
+            {
+                p.out.emplace(4u, 2u);
+            }
+        }
         else  // PI, PO, etc.
         {
             // special case: PO determines output according to its predecessor
@@ -610,6 +686,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PI determines input according to successor
             if (lyt.is_pi(n))
             {
+                LOG("IS PI");
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
@@ -834,6 +911,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {0, -1, -1, -1, -1},
         {0, -1, -1, -1, -1},
     }})};
+
 
     // ************************************************************
     // ************************** Wires ***************************
@@ -1252,6 +1330,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // bent inverters
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER},
+        {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE},
+        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER}};
 
     static inline const port_clk_sch_map INVERTER_CLOCK_SCHEME_MAP = {
@@ -1268,6 +1348,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // bent inverters
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME}};
 };
 }  // namespace fiction

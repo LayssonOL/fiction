@@ -55,19 +55,23 @@ class apply_gate_library_impl
         gate_lyt.foreach_node(
             [&, this](const auto& n, [[maybe_unused]] auto i)
             {
+                std::cout << "\n ==>  Node: " << n << std::endl;
                 // const auto tile
                 if (!gate_lyt.is_constant(n))
                 {
                     const auto t = gate_lyt.get_tile(n);
+                    std::cout << " ==>  T: " << t << std::endl;
+                    std::cout << " ==>  DEAD NODE: " << gate_lyt.is_dead(n) << std::endl;
 
                     // retrieve the top-leftmost cell in tile t
                     const auto c =
                         relative_to_absolute_cell_position<GateLibrary::gate_x_size(), GateLibrary::gate_y_size(),
                                                            GateLyt, CellLyt>(gate_lyt, t, cell<CellLyt>{0, 0});
 
-                    const auto tp        = GateLibrary::set_up_gate(gate_lyt, t);
-                    auto       tile      = std::get<0>(tp);
-                    auto       pred_tile = std::get<1>(tp);
+                    const auto tp = GateLibrary::set_up_gate(gate_lyt, t);
+
+                    auto tile      = std::get<0>(tp);
+                    auto pred_tile = std::get<1>(tp);
 
                     auto portlist     = std::get<2>(tp);
                     auto pr           = std::get<3>(tp);
@@ -114,12 +118,12 @@ class apply_gate_library_impl
 
         std::cout << " ################# ASSIGN GATE BEGIN #################" << std::endl;
         bool is_gate = this->gate_lyt.is_gate(n) && !this->gate_lyt.is_wire(n);
-
-        auto checked_clk_zone = assign_clock_zones(pred_tile, tile, gclk, is_gate);
         std::cout << " \n NODE: " << fmt::format("{}", n) << std::endl;
         std::cout << " IS GATE: " << fmt::format("{}", is_gate) << std::endl;
         std::cout << " PRED TILE: " << fmt::format("{}", pred_tile) << std::endl;
         std::cout << " TILE: " << fmt::format("{}", tile) << std::endl;
+
+        auto checked_clk_zone = assign_clock_zones(pred_tile, tile, gclk, is_gate);
 
         for (auto y = 0ul; y < g.size(); ++y)
         {
@@ -235,7 +239,7 @@ class apply_gate_library_impl
             // std::cout << " ## AFTER : " << fmt::format("{}", gate_clk_sch) << std::endl;
             tile_gate_cell_layout_map[tile] = std::make_pair(tile_portlist, gate_clk_sch);
         }
-        std::cout << "\n ==================== ASSIGN CLOCK ZONES ==================== \n\n" << std::endl;
+        std::cout << " ==================== ASSIGN CLOCK ZONES ==================== \n\n" << std::endl;
 
         return gate_clk_sch;
     }
