@@ -141,7 +141,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto pred_tile = pair.first;
         FMTPRINT(" ==> Pair first inp: ", p.inp);
         FMTPRINT(" ==> Pair first out: ", p.out);
-        std::cout << " ==> Pair second: " << pred_tile << std::endl;
+        FMTPRINT(" ==> Pair second: ", pred_tile);
 
         try
         {
@@ -149,7 +149,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (lyt.is_inv(n))
                 {
-                    LOG("IS INV");
                     return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
@@ -464,10 +463,13 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto n = lyt.get_node(t);
 
         // NOLINTBEGIN(*-branch-clone)
+        FMTPRINT("TILE: ", t);
+        FMTPRINT("NODE: ", n);
 
         // wires within the circuit
         if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
+            LOG("IS BUF AND NOT PI AND NOT PO");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -540,6 +542,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         }
         else if (lyt.is_inv(n) && !lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
+            LOG("IS INV AND NOT BUF AND NOT PI AND NOT PO");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -615,6 +618,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
+                LOG("IS PO");
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -641,29 +645,32 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // if input is north-western, output port is at (3,0)
                 else if (lyt.has_north_western_incoming_signal(t))
                 {
-
+                    LOG("HAS NORTH WESTERN INCOMING SIGNAL");
                     p.out.emplace(4u, 0u);
                 }
                 // if input is south-western, output port is at (3,2)
                 else if (lyt.has_south_western_incoming_signal(t))
                 {
-
+                    LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
                     p.out.emplace(4u, 4u);
                 }
                 else if (lyt.has_western_incoming_signal(t))
                 {
-
+                    LOG("HAS WESTERN INCOMING SIGNAL");
+                    p.inp.emplace(0u, 2u);
                     p.out.emplace(4u, 4u);
                 }
             }
 
             if (lyt.has_north_western_incoming_signal(t))
             {
+                LOG("HAS NORTH WESTERN INCOMING SIGNAL");
                 pred_tile.y = pred_tile.y - 1;
                 p.inp.emplace(2u, 0u);
             }
             if (lyt.has_south_western_incoming_signal(t))
             {
+                LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
                 if (lyt.is_po(n) || lyt.is_inv(n))
                 {
                     pred_tile.y = pred_tile.y - 1;
@@ -1249,6 +1256,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{}, {port_position(4, 4)}}, LOWER_WIRE},
         {{{port_position(0, 4)}, {}}, LOWER_WIRE},
         {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_WIRE},
+        {{{port_position(2, 0)}, {port_position(2, 4)}}, rotate_90(MIDDLER_WIRE)},
         {{{}, {port_position(4, 2)}}, MIDDLER_WIRE},
         {{{port_position(0, 2)}, {}}, MIDDLER_WIRE},
         {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
@@ -1296,6 +1304,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{}, {port_position(4, 4)}}, LOWER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 4)}, {}}, LOWER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(2, 0)}, {port_position(2, 4)}}, rotate_90(MIDDLER_WIRE_CLOCK_SCHEME)},
         {{{}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},

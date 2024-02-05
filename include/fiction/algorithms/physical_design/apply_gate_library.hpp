@@ -55,13 +55,10 @@ class apply_gate_library_impl
         gate_lyt.foreach_node(
             [&, this](const auto& n, [[maybe_unused]] auto i)
             {
-                std::cout << "\n ==>  Node: " << n << std::endl;
                 // const auto tile
                 if (!gate_lyt.is_constant(n))
                 {
                     const auto t = gate_lyt.get_tile(n);
-                    std::cout << " ==>  T: " << t << std::endl;
-                    std::cout << " ==>  DEAD NODE: " << gate_lyt.is_dead(n) << std::endl;
 
                     // retrieve the top-leftmost cell in tile t
                     const auto c =
@@ -159,6 +156,7 @@ class apply_gate_library_impl
         // returns the predefined clock scheme
         if (gate_lyt.is_empty_tile(pred_tile))
         {
+            LOG("IT IS AN EMPTY TILE");
             if (is_gate)
             {
                 std::cout << "\n ## " << fmt::format("Tile {} is gate {}", tile, is_gate) << std::endl;
