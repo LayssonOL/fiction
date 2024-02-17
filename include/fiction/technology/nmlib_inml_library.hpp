@@ -1378,6 +1378,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE},
         {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER},
         {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
+        {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER}};
 
     static inline const port_clk_sch_map INVERTER_CLOCK_SCHEME_MAP = {
@@ -1397,6 +1398,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
         {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME}};
 };
 }  // namespace fiction
