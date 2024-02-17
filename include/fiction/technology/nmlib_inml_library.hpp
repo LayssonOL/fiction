@@ -829,6 +829,42 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, 1,  1,  2},
     }})};
 
+    static constexpr const fcn_gate MIDDLER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', 'N', 'n', 'n'},
+        {' ', 'n', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {0, -1, 2,  2,  3},
+        {-1, 1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+    }})};
+
+    static constexpr const fcn_gate TOP_BOTTOM_STRAIGHT_INVERTER{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', 'n', ' ', ' ', ' '},
+        {' ', 'n', 'n', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, 1, -1, -1, -1},
+        {-1, 2, 2, -1, -1},
+        {-1, -1, 3, -1, -1},
+        {-1, -1, 3, -1, -1},
+    }})};
+
     static constexpr const fcn_gate BOTTOM_LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' '},
@@ -1340,6 +1376,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER},
         {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE},
+        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER},
         {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER}};
 
@@ -1358,6 +1395,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
         {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME}};
 };
