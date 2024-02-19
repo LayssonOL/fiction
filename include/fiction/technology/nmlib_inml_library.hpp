@@ -102,20 +102,21 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
         const auto n = lyt.get_node(t);
 
-        if constexpr (fiction::has_is_fanout_v<GateLyt>)
-        {
-            if (lyt.is_fanout(n))
-            {
-                port_list<port_position> pl = {{port_position(0, 2)}, {port_position(4, 0), port_position(4, 4)}};
-                return {t, {}, pl, std::make_pair(COUPLER, COUPLER_WIRE_CLOCK_SCHEME)};
-            }
-        }
         if constexpr (mockturtle::has_is_and_v<GateLyt>)
         {
             if (lyt.is_and(n))
             {
-                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
-                return {t, {}, pl, std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME)};
+                // outputs
+                if (lyt.has_southern_outgoing_signal(t))
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(2, 4)}};
+                    return {t, {}, pl, std::make_pair(CONJUNCTION_TO_BOTTOM, CONJUNCTION_TO_BOTTOM_CLOCK_SCHEME)};
+                }
+                else
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
+                    return {t, {}, pl, std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME)};
+                }
             }
         }
         if constexpr (mockturtle::has_is_or_v<GateLyt>)
@@ -463,11 +464,85 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto n = lyt.get_node(t);
 
         // NOLINTBEGIN(*-branch-clone)
-        FMTPRINT("TILE: ", t);
-        FMTPRINT("NODE: ", n);
+        FMTPRINT("\n ## TILE: ", t);
+        FMTPRINT(" ## NODE: ", n);
 
+        // FanOuts
+        if (lyt.is_fanout(n))
+        {
+            LOG("IS FANOUT");
+            // inputs
+            if (lyt.has_northern_incoming_signal(t))
+            {
+                pred_tile.y = pred_tile.y - 1;
+                p.inp.emplace(2u, 0u);
+            }
+            else if (lyt.has_southern_incoming_signal(t))
+            {
+                pred_tile.y = pred_tile.y + 1;
+                p.inp.emplace(2u, 4u);
+            }
+            else if (lyt.has_south_western_incoming_signal(t))
+            {
+
+                pred_tile.y = pred_tile.y + 1;
+                pred_tile.x = pred_tile.x - 1;
+                // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
+                if (has_and_or_maj_fanin(lyt, n))
+                {
+                    p.inp.emplace(0u, 4u);
+                }
+                else
+                {
+                    p.inp.emplace(0u, 2u);
+                }
+            }
+            else
+            {
+                pred_tile.x = pred_tile.x - 1;
+                p.inp.emplace(0u, 2u);
+            }
+
+            // outputs
+            if (lyt.has_northern_outgoing_signal(t))
+            {
+                // special case: if northern tile is MAJ, output port is at (1,0)
+                if (lyt.is_maj(lyt.get_node(lyt.north(t))))
+                {
+                    p.out.emplace(1u, 0u);
+                }
+                else
+                {
+                    p.out.emplace(4u, 0u);
+                }
+            }
+            if (lyt.has_southern_outgoing_signal(t))
+            {
+                p.out.emplace(2u, 4u);
+            }
+            if (lyt.has_north_eastern_outgoing_signal(t))
+            {
+                p.out.emplace(4u, 0u);
+            }
+            if (lyt.has_south_eastern_outgoing_signal(t))
+            {
+                // special case: if successor is a fanout, output port is at (3,3)
+                if (has_fanout_fanout(lyt, n))
+                {
+                    p.out.emplace(4u, 4u);
+                }
+                else
+                {
+                    p.out.emplace(4u, 2u);
+                }
+            }
+            if (lyt.has_eastern_outgoing_signal(t))
+            {
+                p.out.emplace(4u, 2u);
+            }
+        }
         // wires within the circuit
-        if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
+        else if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
             LOG("IS BUF AND NOT PI AND NOT PO");
             // inputs
@@ -775,22 +850,58 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, 1, 1, 2},
     }})};
 
+    static constexpr const fcn_gate CONJUNCTION_TO_BOTTOM{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', ' ', 'N', ' '},
+        {'n', ' ', ' ', ' ', 'N'},
+        {'d', ' ', ' ', ' ', 'd'},
+        {'N', 'n', 'u', 'n', 'N'},
+    }})};
+
+    static constexpr const fcn_clk_sch CONJUNCTION_TO_BOTTOM_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, -1, -1, 0, -1},
+        {0, -1, -1, -1, 1},
+        {1, -1, -1, -1, 1},
+        {2, 2, 3, 2, 2},
+    }})};
+
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
     {{
-        {'N', 'n', 'N', 'n', 'N'},
+        {' ', ' ', 'n', 'd', 'N'},
         {' ', ' ', ' ', ' ', 'n'},
-        {' ', ' ', ' ', ' ', 'y'},
-        {' ', ' ', ' ', ' ', 'n'},
-        {'N', 'n', 'N', 'n', 'N'},
+        {'n', ' ', ' ', ' ', 'y'},
+        {' ', 'N', ' ', ' ', 'n'},
+        {' ', ' ', 'N', 'd', 'N'},
     }})};
 
     static constexpr const fcn_clk_sch DISJUNCTION_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        { 0,  0, 1, 1, 2},
-        {-1,-1, -1,-1, 2},
-        {-1,-1, -1,-1, 3},
-        {-1,-1, -1,-1, 2},
-        { 0,  0, 1, 1, 2},
+        {-1, -1, 0, 1, 2},
+        {-1, -1, -1, -1, 2},
+        {0, -1, -1, -1, 3},
+        {-1, 0, -1, -1, 2},
+        {-1, -1, 1, 1, 2},
+    }})};
+
+    static constexpr const fcn_gate DISJUNCTION_TO_BOTTOM{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', ' ', 'N', ' '},
+        {'n', ' ', ' ', ' ', 'N'},
+        {'d', ' ', ' ', ' ', 'd'},
+        {'N', 'n', 'y', 'n', 'N'},
+    }})};
+
+    static constexpr const fcn_clk_sch DISJUNCTION_TO_BOTTOM_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 0, -1, -1},
+        {-1, -1, -1, 0, -1},
+        {0, -1, -1, -1, 1},
+        {1, -1, -1, -1, 1},
+        {2, 2, 3, 2, 2},
     }})};
 
     static constexpr const fcn_gate MAJORITY{cell_list_to_gate<char>(
@@ -987,22 +1098,40 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, 1, -1, -1},
     }})};
 
-    static constexpr const fcn_gate COUPLER{cell_list_to_gate<char>(
+    static constexpr const fcn_gate COUPLER_FANOUT_TOP_BOTTOM_RIGHT{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'N', '6', 'n'},
-        {' ', ' ', 'n', ' ', ' '},
-        {'N', 'n', 'N', ' ', ' '},
+        {' ', ' ', 'N', ' ', ' '},
         {' ', ' ', 'n', ' ', ' '},
         {' ', ' ', 'N', '6', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
     }})};
 
-    static constexpr const fcn_clk_sch COUPLER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    static constexpr const fcn_clk_sch COUPLER_FANOUT_TOP_BOTTOM_RIGHT_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, 3, 3, 0},
+        {-1, -1, 0, -1, -1},
+        {-1, -1, 0, -1, -1},
+        { -1, -1, 1, 2, 3},
         {-1, -1, 2, -1, -1},
-        { 0, 0, 1, -1, -1},
+        {-1, -1, 3, -1, -1},
+    }})};
+
+    static constexpr const fcn_gate COUPLER_FANOUT_LEFT_BOTTOM_RIGHT{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {'N', 'n', 'N', '6', 'n'},
+        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', 'n', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0, 0, 1, 2, 3},
         {-1, -1, 2, -1, -1},
-        {-1, -1, 3, 3, 0},
+        {-1, -1, 3, -1, -1},
     }})};
 
     static constexpr const fcn_gate LOWER_WIRE{cell_list_to_gate<char>(
@@ -1309,7 +1438,10 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
-        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE}};
+        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE},
+        {{{port_position(2, 0)}, {port_position(2, 4), port_position(4, 2)}}, COUPLER_FANOUT_TOP_BOTTOM_RIGHT},
+        {{{port_position(0, 2)}, {port_position(2, 4), port_position(4, 2)}}, COUPLER_FANOUT_LEFT_BOTTOM_RIGHT},
+    };
 
     static inline const port_clk_sch_map WIRE_CLOCK_SCHEME_MAP = {
         // straight wires
@@ -1357,7 +1489,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE_CLOCK_SCHEME}};
+        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(2, 0)}, {port_position(2, 4), port_position(4, 2)}},
+         COUPLER_FANOUT_TOP_BOTTOM_RIGHT_CLOCK_SCHEME},
+        {{{port_position(0, 2)}, {port_position(2, 4), port_position(4, 2)}},
+         COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME},
+    };
     /**
      * Lookup table for inverter rotations. Maps ports to corresponding inverters.
      */
