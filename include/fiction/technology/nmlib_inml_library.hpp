@@ -110,12 +110,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 if (lyt.has_southern_outgoing_signal(t))
                 {
                     port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(2, 4)}};
-                    return {t, {}, pl, std::make_pair(CONJUNCTION_TO_BOTTOM, CONJUNCTION_TO_BOTTOM_CLOCK_SCHEME)};
+                    return {t, {}, pl, std::make_pair(rotate_90(CONJUNCTION), rotate_90(CONJUNCTION_CLOCK_SCHEME))};
                 }
                 else
                 {
                     port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
-                    return {t, {}, pl, std::make_pair(CONJUNCTION, CONJUNCTION_CLOCK_SCHEME)};
+                    return {t,
+                            {},
+                            pl,
+                            std::make_pair(CONJUNCTION_TOP_LEFT_INPUTS, CONJUNCTION_TOP_LEFT_INPUTS_CLOCK_SCHEME)};
                 }
             }
         }
@@ -123,26 +126,47 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {
             if (lyt.is_or(n))
             {
-                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
-                return {t, {}, pl, std::make_pair(DISJUNCTION, DISJUNCTION_CLOCK_SCHEME)};
+                // outputs
+                if (lyt.has_southern_outgoing_signal(t))
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(2, 4)}};
+                    return {t, {}, pl, std::make_pair(rotate_90(DISJUNCTION), rotate_90(DISJUNCTION_CLOCK_SCHEME))};
+                }
+                else
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
+                    return {t,
+                            {},
+                            pl,
+                            std::make_pair(DISJUNCTION_TOP_LEFT_INPUTS, DISJUNCTION_TOP_LEFT_INPUTS_CLOCK_SCHEME)};
+                }
             }
         }
         if constexpr (mockturtle::has_is_maj_v<GateLyt>)
         {
             if (lyt.is_maj(n))
             {
-                port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(2, 4)},
-                                               {port_position(4, 2)}};
-                return {t, {}, pl, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
+                if (lyt.has_southern_outgoing_signal(t))
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(4, 2)},
+                                                   {port_position(2, 4)}};
+                    return {t, {}, pl, std::make_pair(rotate_90(MAJORITY), rotate_90(MAJORITY_CLOCK_SCHEME))};
+                }
+                else
+                {
+                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(2, 4)},
+                                                   {port_position(4, 2)}};
+                    return {t, {}, pl, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
+                }
             }
         }
 
         const auto pair      = determine_port_routing(lyt, t);
         const auto p         = pair.second;
         const auto pred_tile = pair.first;
-        FMTPRINT(" ==> Pair first inp: ", p.inp);
-        FMTPRINT(" ==> Pair first out: ", p.out);
-        FMTPRINT(" ==> Pair second: ", pred_tile);
+        // FMTPRINT(" ==> Pair first inp: ", p.inp);
+        // FMTPRINT(" ==> Pair first out: ", p.out);
+        // FMTPRINT(" ==> Pair second: ", pred_tile);
 
         try
         {
@@ -464,13 +488,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto n = lyt.get_node(t);
 
         // NOLINTBEGIN(*-branch-clone)
-        FMTPRINT("\n ## TILE: ", t);
-        FMTPRINT(" ## NODE: ", n);
+        // FMTPRINT("\n ## TILE: ", t);
+        // FMTPRINT(" ## NODE: ", n);
 
         // FanOuts
         if (lyt.is_fanout(n))
         {
-            LOG("IS FANOUT");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -544,7 +567,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // wires within the circuit
         else if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            LOG("IS BUF AND NOT PI AND NOT PO");
+            // LOG("IS BUF AND NOT PI AND NOT PO");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -617,7 +640,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         }
         else if (lyt.is_inv(n) && !lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            LOG("IS INV AND NOT BUF AND NOT PI AND NOT PO");
+            // LOG("IS INV AND NOT BUF AND NOT PI AND NOT PO");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -693,7 +716,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
-                LOG("IS PO");
+                // LOG("IS PO");
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -720,18 +743,18 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // if input is north-western, output port is at (3,0)
                 else if (lyt.has_north_western_incoming_signal(t))
                 {
-                    LOG("HAS NORTH WESTERN INCOMING SIGNAL");
+                    // LOG("HAS NORTH WESTERN INCOMING SIGNAL");
                     p.out.emplace(4u, 0u);
                 }
                 // if input is south-western, output port is at (3,2)
                 else if (lyt.has_south_western_incoming_signal(t))
                 {
-                    LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
+                    // LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
                     p.out.emplace(4u, 4u);
                 }
                 else if (lyt.has_western_incoming_signal(t))
                 {
-                    LOG("HAS WESTERN INCOMING SIGNAL");
+                    // LOG("HAS WESTERN INCOMING SIGNAL");
                     p.inp.emplace(0u, 2u);
                     p.out.emplace(4u, 4u);
                 }
@@ -739,13 +762,13 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
             if (lyt.has_north_western_incoming_signal(t))
             {
-                LOG("HAS NORTH WESTERN INCOMING SIGNAL");
+                // LOG("HAS NORTH WESTERN INCOMING SIGNAL");
                 pred_tile.y = pred_tile.y - 1;
                 p.inp.emplace(2u, 0u);
             }
             if (lyt.has_south_western_incoming_signal(t))
             {
-                LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
+                // LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
                 if (lyt.is_po(n) || lyt.is_inv(n))
                 {
                     pred_tile.y = pred_tile.y - 1;
@@ -768,7 +791,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PI determines input according to successor
             if (lyt.is_pi(n))
             {
-                LOG("IS PI");
+                // LOG("IS PI");
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
@@ -834,6 +857,24 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
     static constexpr const fcn_gate CONJUNCTION{cell_list_to_gate<char>(
     {{
+        {' ', ' ', 'N', 'd', 'N'},
+        {' ', 'N', ' ', ' ', 'n'},
+        {'n', ' ', ' ', ' ', 'u'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', 'n', 'd', 'N'},
+    }})};
+
+    static constexpr const fcn_clk_sch CONJUNCTION_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 1, 1, 2},
+        {-1, 0, -1, -1, 2},
+        {0, -1, -1, -1, 3},
+        {-1, -1, -1, -1, 2},
+        {-1, -1, 0, 1, 2},
+    }})};
+
+    static constexpr const fcn_gate CONJUNCTION_TOP_LEFT_INPUTS{cell_list_to_gate<char>(
+    {{
         {' ', ' ', 'n', 'd', 'N'},
         {' ', ' ', ' ', ' ', 'n'},
         {'n', ' ', ' ', ' ', 'u'},
@@ -841,34 +882,34 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {' ', ' ', 'N', 'd', 'N'},
     }})};
 
-    static constexpr const fcn_clk_sch CONJUNCTION_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    static constexpr const fcn_clk_sch CONJUNCTION_TOP_LEFT_INPUTS_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, 0, 1, 2},
+        {-1, -1, 1, 1, 2},
         {-1, -1, -1, -1, 2},
         {0, -1, -1, -1, 3},
         {-1, 0, -1, -1, 2},
         {-1, -1, 1, 1, 2},
     }})};
 
-    static constexpr const fcn_gate CONJUNCTION_TO_BOTTOM{cell_list_to_gate<char>(
-    {{
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', ' ', 'N', ' '},
-        {'n', ' ', ' ', ' ', 'N'},
-        {'d', ' ', ' ', ' ', 'd'},
-        {'N', 'n', 'u', 'n', 'N'},
-    }})};
-
-    static constexpr const fcn_clk_sch CONJUNCTION_TO_BOTTOM_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
-    {{
-        {-1, -1, 0, -1, -1},
-        {-1, -1, -1, 0, -1},
-        {0, -1, -1, -1, 1},
-        {1, -1, -1, -1, 1},
-        {2, 2, 3, 2, 2},
-    }})};
-
     static constexpr const fcn_gate DISJUNCTION{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', 'n', 'd', 'N'},
+        {' ', 'N', ' ', ' ', 'n'},
+        {'n', ' ', ' ', ' ', 'y'},
+        {' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', 'n', 'd', 'N'},
+    }})};
+
+    static constexpr const fcn_clk_sch DISJUNCTION_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, 1, 1, 2},
+        {-1, 0, -1, -1, 2},
+        {0, -1, -1, -1, 3},
+        {-1, -1, -1, -1, 2},
+        {-1, -1, 0, 1, 2},
+    }})};
+
+    static constexpr const fcn_gate DISJUNCTION_TOP_LEFT_INPUTS{cell_list_to_gate<char>(
     {{
         {' ', ' ', 'n', 'd', 'N'},
         {' ', ' ', ' ', ' ', 'n'},
@@ -877,7 +918,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {' ', ' ', 'N', 'd', 'N'},
     }})};
 
-    static constexpr const fcn_clk_sch DISJUNCTION_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    static constexpr const fcn_clk_sch DISJUNCTION_TOP_LEFT_INPUTS_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
         {-1, -1, 0, 1, 2},
         {-1, -1, -1, -1, 2},
@@ -886,23 +927,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, 1, 1, 2},
     }})};
 
-    static constexpr const fcn_gate DISJUNCTION_TO_BOTTOM{cell_list_to_gate<char>(
-    {{
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', ' ', 'N', ' '},
-        {'n', ' ', ' ', ' ', 'N'},
-        {'d', ' ', ' ', ' ', 'd'},
-        {'N', 'n', 'y', 'n', 'N'},
-    }})};
-
-    static constexpr const fcn_clk_sch DISJUNCTION_TO_BOTTOM_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
-    {{
-        {-1, -1, 0, -1, -1},
-        {-1, -1, -1, 0, -1},
-        {0, -1, -1, -1, 1},
-        {1, -1, -1, -1, 1},
-        {2, 2, 3, 2, 2},
-    }})};
 
     static constexpr const fcn_gate MAJORITY{cell_list_to_gate<char>(
     {{
