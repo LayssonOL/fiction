@@ -429,6 +429,7 @@ class write_nmls_layout_impl
         os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
         std::string magnet_lines{""};
         size_t      idx{0};
+        // This function replaces entire cells, it is necessary to iterate over each magnet
         lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
                          { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
         os << "\n" << magnet_lines;
