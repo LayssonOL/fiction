@@ -387,37 +387,38 @@ class write_nmls_layout_impl
         return cell_str;
     }
 
-    [[nodiscard]] std::string get_magnet_specs_str(const auto& pos) const
+    [[nodiscard]] std::string get_magnet_specs_str(const auto& pos, auto& idx) const
     {
         // Magnet_{ID};magnet_type;clock_zone;magnetization_vector;fixed_magnetization;width;height;thickness;top_cut;bottom_cut;pos_x,pos_y;color_code
         std::string                             cell_str{""};
-        const nmlib_inml_technology::cell_type& ctype               = lyt.get_cell_type(pos);
-        const uint64_t                          cell_height         = nmlib_inml_technology::get_cell_height(ctype);
-        std::string                             fixed_magnetization = ctype == 'i' ? "true" : "false";
-        // const auto&                             clock_zone  = lyt.get_custom_clock_number(pos);
+        const nmlib_inml_technology::cell_type& ctype = lyt.get_cell_type(pos);
+        std::string    magnet_type                    = ctype == 'i' ? "input" : ctype == 'o' ? "output" : "regular";
+        const uint64_t cell_height                    = nmlib_inml_technology::get_cell_height(ctype);
+        std::string    fixed_magnetization            = ctype == 'i' ? "true" : "false";
+        const auto&    clock_zone                     = lyt.get_custom_clock_number(pos);
 
         const auto [top_cut, bottom_cut] = get_cell_cuts(ctype);
 
         const uint32_t cell_abs_x =
             static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_X +
-                               (pos.first * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH)));
+                               (pos.x * (nmlib_inml_technology::CELL_HSPACE + nmlib_inml_technology::CELL_WIDTH)));
 
-        const uint32_t cell_abs_y = static_cast<float>(
-            nmlib_inml_technology::LAYOUT_BASE_Y +
-            (pos.second * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::BIG_CELL_HEIGHT)));
+        const uint32_t cell_abs_y =
+            static_cast<float>(nmlib_inml_technology::LAYOUT_BASE_Y +
+                               (pos.y * (nmlib_inml_technology::CELL_VSPACE + nmlib_inml_technology::BIG_CELL_HEIGHT)));
 
-        LOG(fmt::format("\n  ## Magnet pos {}", pos));
-        LOG(fmt::format("Magnet type {}", ctype));
-        LOG(fmt::format("Magnet: height {}, top_cut {}, bottom_cut {}", cell_height, top_cut, bottom_cut));
-        LOG(fmt::format("magnet_abs_x: {}, magnet_abs_y: {}", cell_abs_x, cell_abs_y));
+        // LOG(fmt::format("\n  ## Magnet pos {}", pos));
+        // LOG(fmt::format("Magnet type {}", ctype));
+        // LOG(fmt::format("Magnet: height {}, top_cut {}, bottom_cut {}", cell_height, top_cut, bottom_cut));
+        // LOG(fmt::format("magnet_abs_x: {}, magnet_abs_y: {}", cell_abs_x, cell_abs_y));
 
-        // std::string magnet_str = fmt::format(
-        //     nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG,
-        //     fixed_magnetization, nmlib_inml_technology::CELL_WIDTH, cell_height,
-        //     nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut, fmt::format("{}.0,{}.0", cell_abs_x,
-        //     cell_abs_y), get_cell_color(clock_zone));
-        // cell_str += fmt::format(magnet_str);
-        return "";
+        std::string magnet_str = fmt::format(
+            nmls::MAGNET_SPECS, idx, magnet_type, clock_zone, nmlib_inml_technology::DEFAULT_MAG, fixed_magnetization,
+            nmlib_inml_technology::CELL_WIDTH, cell_height, nmlib_inml_technology::CELL_THICKNESS, top_cut, bottom_cut,
+            fmt::format("{}.0,{}.0", cell_abs_x, cell_abs_y), get_cell_color(clock_zone));
+
+        idx++;
+        return magnet_str;
     }
 
     void write_header()
@@ -460,8 +461,8 @@ class write_nmls_layout_impl
     {
         os << "\n" << fmt::format(nmls::MAGNETS_SECTION_HEADER, lyt.num_cells());
         std::string magnet_lines{""};
-        size_t      idx{0};
-        size_t      magnets_qnt{0};
+        // size_t      idx{0};
+        size_t magnets_qnt{0};
         LOG(fmt::format("\n WRITE MAGNETS SECTION \n"));
         // This function replaces entire cells, it is necessary to iterate over each magnet
         // and calculate its position
@@ -472,14 +473,14 @@ class write_nmls_layout_impl
                 if (!lyt.is_empty_cell({x_pos, y_pos, 0}))
                 {
                     cell<Lyt> c{x_pos, y_pos};
-                    ++magnets_qnt;
-                    get_magnet_specs_str(c);
+                    magnet_lines += get_magnet_specs_str(c, magnets_qnt) + "\n";
                 }
             }
         }
         LOG(fmt::format("\n magnets_qnt {}", magnets_qnt));
-        lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
-                         { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
+        // lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
+        //                  { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
+        // LOG(fmt::format("\n idx {}", idx));
         os << "\n" << magnet_lines;
     }
 };
