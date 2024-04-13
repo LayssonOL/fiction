@@ -38,6 +38,9 @@ namespace fiction
 namespace detail
 {
 
+using ClockingZonesTilesPair = std::pair<std::vector<port_position>, std::vector<int>>;
+using ClockingZonesMap       = std::map<int, ClockingZonesTilesPair>;
+
 template <typename CellLyt, typename GateLibrary, typename GateLyt>
 class apply_gate_library_impl
 {
@@ -70,8 +73,7 @@ class apply_gate_library_impl
 
                     const auto tp = GateLibrary::set_up_gate(gate_lyt, t);
 
-                    const std::map<int, std::pair<std::vector<port_position>, std::vector<int>>>
-                        node_outputs_clocking_zones_map;
+                    ClockingZonesMap node_outputs_clocking_zones_map;
 
                     auto tile      = std::get<0>(tp);
                     auto pred_tile = std::get<1>(tp);
@@ -110,10 +112,9 @@ class apply_gate_library_impl
     std::map<tile<GateLyt>, std::pair<port_list<port_position>, typename GateLibrary::fcn_clk_sch>>
         tile_gate_cell_layout_map;
 
-    void assign_gate(
-        const cell<CellLyt>& c, const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
-        const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n,
-        const std::map<int, std::pair<std::vector<port_position>, std::vector<int>>>& node_outputs_clocking_zones_map)
+    void assign_gate(const cell<CellLyt>& c, const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
+                     const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n,
+                     ClockingZonesMap& node_outputs_clocking_zones_map)
     {
         auto start_x = c.x;
         auto start_y = c.y;
@@ -123,21 +124,24 @@ class apply_gate_library_impl
 
         std::cout << " ################# ASSIGN GATE BEGIN #################" << std::endl;
         bool is_gate = this->gate_lyt.is_gate(n) && !this->gate_lyt.is_wire(n);
+
+        const auto tile_portlist = tile_gate_cell_layout_map.at(tile).first;
+
         if (is_gate)
         {
             std::cout << " \n NODE: " << fmt::format("{}", n) << std::endl;
             std::cout << " IS GATE: " << fmt::format("{}", is_gate) << std::endl;
             std::cout << " PRED TILE: " << fmt::format("{}", pred_tile) << std::endl;
             std::cout << " TILE: " << fmt::format("{}", tile) << std::endl;
-            const auto tile_portlist = tile_gate_cell_layout_map.at(tile).first;
             std::cout << " TILE PORTS: " << fmt::format("{}", tile_portlist) << "\n\n" << std::endl;
             std::cout << " TILE INPS: " << fmt::format("{}", tile_portlist.inp) << "\n\n" << std::endl;
             std::cout << " TILE OUTS: " << fmt::format("{}", tile_portlist.out) << "\n\n" << std::endl;
         }
-        auto checked_clk_zone =
-            assign_clock_zones(pred_tile, tile, gclk, is_gate, std::forward(node_outputs_clocking_zones_map));
 
-        std::pair<std::vector<port_position>, std::vector<int>> updated_clock_zones;
+        auto checked_clk_zone = assign_clock_zones(pred_tile, tile, gclk, is_gate,
+                                                   std::forward<ClockingZonesMap&>(node_outputs_clocking_zones_map));
+
+        ClockingZonesTilesPair updated_clock_zones;
 
         for (auto out : tile_portlist.out)
         {
@@ -147,7 +151,9 @@ class apply_gate_library_impl
             updated_clock_zones.first.push_back(out);
             updated_clock_zones.second.push_back(checked_clk_zone[out.x][out.y]);
         }
-        node_outputs_clocking_zones_map[n] = updated_clock_zones;
+
+        node_outputs_clocking_zones_map.insert(
+            {std::stoi(fmt::format("{}", n)), std::make_pair(updated_clock_zones.first, updated_clock_zones.second)});
 
         for (auto y = 0ul; y < g.size(); ++y)
         {
@@ -173,10 +179,9 @@ class apply_gate_library_impl
         std::cout << " ################# ASSIGN GATE END #################" << std::endl;
     }
 
-    GateLibrary::fcn_clk_sch assign_clock_zones(
-        const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile, const typename GateLibrary::fcn_gate_clk_sch& gpair,
-        bool                                                                          is_gate,
-        const std::map<int, std::pair<std::vector<port_position>, std::vector<int>>>& node_outputs_clocking_zones_map)
+    GateLibrary::fcn_clk_sch assign_clock_zones(const tile<GateLyt>& pred_tile, const tile<GateLyt>& tile,
+                                                const typename GateLibrary::fcn_gate_clk_sch& gpair, bool is_gate,
+                                                ClockingZonesMap& node_outputs_clocking_zones_map)
     {
         std::cout << " ==================== ASSIGN CLOCK ZONES ==================== \n" << std::endl;
 
