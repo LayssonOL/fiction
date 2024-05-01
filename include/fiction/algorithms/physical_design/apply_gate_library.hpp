@@ -148,8 +148,9 @@ class apply_gate_library_impl
         // Calculate path between pred_tile and tile
         // using clk_lyt         = fc::clocked_layout<fc::cartesian_layout<fc::offset::ucoord_t>>;
         // using path = fc::layout_coordinate_path<GateLyt>;
+        // LOG("## ENUMERATE PATHS...");
         // const auto collection =
-        // fc::enumerate_all_clocking_paths<path>(this->gate_lyt, {{pred_tile.x, pred_tile.y}, {tile.x, tile.y}});
+        //     fc::enumerate_all_clocking_paths<path>(this->gate_lyt, {{pred_tile.x, pred_tile.y}, {tile.x, tile.y}});
         // const auto title = fmt::format("Path from {} to {}: ", pred_tile, tile);
         // std::cout << title << fmt::format("{}", collection) << std::endl;
 

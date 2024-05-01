@@ -448,6 +448,76 @@ void print_layout(const Lyt& lyt, std::ostream& os = std::cout)
     }
 }
 
+template <typename Lyt>
+void generate_tiles_pairs_from_gate_level_layout(const Lyt&                                   layout,
+                                                 std::map<tile<Lyt>, std::vector<tile<Lyt>>>& tile_preds_map,
+                                                 std::map<tile<Lyt>, std::vector<tile<Lyt>>>& tile_succs_map)
+{
+    static_assert(is_gate_level_layout_v<Lyt>, "Lyt is not a gate-level layout");
+
+    // empty layout
+    if (layout.num_gates() == 0ul && layout.num_wires() == 0ul)
+    {
+        std::cout << "[i] empty layout" << std::endl;
+        return;
+    }
+
+    if constexpr (is_hexagonal_layout_v<Lyt>)
+    {
+        std::cout << "[e] hexagonal layout printing is not supported" << std::endl;
+        return;
+    }
+    else if constexpr (is_shifted_cartesian_layout_v<Lyt>)
+    {
+        std::cout << "[e] shifted cartesian layout printing is not supported" << std::endl;
+        return;
+    }
+
+    const auto num_cols = layout.x() + 1;
+    const auto num_rows = layout.y() + 1;
+
+    // cache operations and directions in a 2d-matrix-like object
+
+    for (auto i = 0ull; i < num_rows; ++i)
+    {
+        for (auto j = 0ull; j < num_cols; ++j)
+        {
+            auto t1            = tile<Lyt>{j, i};
+            tile_preds_map[t1] = std::vector<tile<Lyt>>{};
+            tile_succs_map[t1] = std::vector<tile<Lyt>>{};
+            auto t2            = layout.above(t1);
+
+            const auto east_west_connections = [&layout, &tile_preds_map, &tile_succs_map, &t1, &t2, i, j](const auto n)
+            {
+                const auto ft = layout.get_tile(n);
+                if (layout.is_east_of(t1, ft) || layout.is_east_of(t2, ft) || layout.is_west_of(t1, ft) ||
+                    layout.is_west_of(t2, ft))
+                {
+                    tile_succs_map[t1].push_back(ft);
+                    tile_preds_map[ft].push_back(t1);
+                }
+            };
+
+            const auto north_south_connections =
+                [&layout, &tile_preds_map, &tile_succs_map, &t1, &t2, i, j](const auto n)
+            {
+                const auto ft = layout.get_tile(n);
+                if (layout.is_north_of(t1, ft) || layout.is_north_of(t2, ft) || layout.is_south_of(t1, ft) ||
+                    layout.is_south_of(t2, ft))
+                {
+                    tile_succs_map[t1].push_back(ft);
+                    tile_preds_map[ft].push_back(t1);
+                }
+            };
+
+            layout.foreach_fanout(layout.get_node(t1), east_west_connections);
+            layout.foreach_fanout(layout.get_node(t2), east_west_connections);
+            layout.foreach_fanout(layout.get_node(t1), north_south_connections);
+            layout.foreach_fanout(layout.get_node(t2), north_south_connections);
+        }
+    }
+}
+
 }  // namespace fiction
 
 #endif  // FICTION_PRINT_LAYOUT_HPP
