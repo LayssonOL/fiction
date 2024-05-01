@@ -483,7 +483,6 @@ void generate_tiles_pairs_from_gate_level_layout(const Lyt&                     
         for (auto j = 0ull; j < num_cols; ++j)
         {
             auto t1            = tile<Lyt>{j, i};
-            tile_preds_map[t1] = std::vector<tile<Lyt>>{};
             tile_succs_map[t1] = std::vector<tile<Lyt>>{};
             auto t2            = layout.above(t1);
 
@@ -494,7 +493,15 @@ void generate_tiles_pairs_from_gate_level_layout(const Lyt&                     
                     layout.is_west_of(t2, ft))
                 {
                     tile_succs_map[t1].push_back(ft);
-                    tile_preds_map[ft].push_back(t1);
+                    if (tile_preds_map.find(ft) == tile_preds_map.end())
+                    {
+                        tile_preds_map[ft] = std::vector<tile<Lyt>>{};
+                        tile_preds_map[ft].push_back(t1);
+                    }
+                    else
+                    {
+                        tile_preds_map[ft].push_back(t1);
+                    }
                 }
             };
 
@@ -506,7 +513,15 @@ void generate_tiles_pairs_from_gate_level_layout(const Lyt&                     
                     layout.is_south_of(t2, ft))
                 {
                     tile_succs_map[t1].push_back(ft);
-                    tile_preds_map[ft].push_back(t1);
+                    if (tile_preds_map.find(ft) == tile_preds_map.end())
+                    {
+                        tile_preds_map[ft] = std::vector<tile<Lyt>>{};
+                        tile_preds_map[ft].push_back(t1);
+                    }
+                    else
+                    {
+                        tile_preds_map[ft].push_back(t1);
+                    }
                 }
             };
 
