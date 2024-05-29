@@ -16,15 +16,18 @@
 
 #include <mockturtle/traits.hpp>
 
-#include <algorithm>
+#include <celaeno/graph/search/a-star.hpp>
+#include <celaeno/heuristics/euclidian.hpp>
+
+// #include <algorithm>
 #include <cstddef>
-#include <cstdint>
+// #include <cstdint>
 #include <ctime>
 #include <iostream>
-#include <iterator>
-#include <map>
-#include <type_traits>
-#include <utility>
+// #include <iterator>
+// #include <map>
+// #include <type_traits>
+// #include <utility>
 
 #if (PROGRESS_BARS)
 #include <mockturtle/utils/progress_bar.hpp>
@@ -41,10 +44,16 @@ namespace fiction
 namespace detail
 {
 
-namespace fc = fiction;
+namespace ns_heuristics = celaeno::heuristics;
+namespace a_star        = celaeno::graph::search::a_star;
+namespace fc            = fiction;
 
+using float64_t              = double;
 using ClockingZonesTilesPair = std::pair<std::vector<port_position>, std::vector<int>>;
 using ClockingZonesMap       = std::map<int, ClockingZonesTilesPair>;
+
+template <typename T>
+using Coord = std::pair<T, T>;
 
 template <typename CellLyt, typename GateLibrary, typename GateLyt>
 class apply_gate_library_impl
@@ -122,6 +131,43 @@ class apply_gate_library_impl
     CellLyt cell_lyt;
     std::map<tile<GateLyt>, std::pair<port_list<port_position>, typename GateLibrary::fcn_clk_sch>>
         tile_gate_cell_layout_map;
+
+    template <typename T>
+    decltype(auto) path(Coord<T>&& p1, Coord<T>&& p2, ClockingZonesTilesPair& clock_zones_map) noexcept
+    {
+        auto neighbors = [&clock_zones_map](auto&& pair) constexpr -> std::vector<std::pair<int64_t, int64_t>>
+        {
+            std::vector<std::pair<int64_t, int64_t>> possible_neighbors = {{
+                {pair.first + 1, pair.second},
+                {pair.first - 1, pair.second},
+                {pair.first, pair.second + 1},
+                {pair.first, pair.second - 1},
+            }};
+            std::vector<std::pair<int64_t, int64_t>> neighbors{};
+
+            for (auto& p : possible_neighbors)
+            {
+                auto it       = std::find(clock_zones_map.first.begin(), clock_zones_map.first.end(), p);
+                auto indexOfP = std::distance(clock_zones_map.first.begin(), it);
+                if ((it != clock_zones_map.first.end()) && clock_zones_map.second.at(indexOfP) >= 0)
+                {
+                    neighbors.push_back(p);
+                }
+            }
+
+            return neighbors;
+        };
+
+        return a_star::run(
+            std::forward<Coord<T>>(p1), std::forward<Coord<T>>(p2),
+            [&](Coord<T> src) -> std::vector<std::pair<int64_t, int64_t>> { return neighbors(src); },
+            [&](Coord<T> dest) -> bool { return true; },
+            [&](auto&& a, auto&& b) -> float64_t
+            {
+                auto m{ns_heuristics::euclidian::run(a, b)};
+                return m;
+            });
+    }
 
     void assign_gate(const cell<CellLyt>& c, const std::vector<tile<GateLyt>>& pred_tiles, const tile<GateLyt>& tile,
                      const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n,
@@ -327,7 +373,7 @@ class apply_gate_library_impl
             if (node_outputs_clocking_zones_map.find(predNode) == node_outputs_clocking_zones_map.end())
             {
                 std::cout << "\t -- OUTPUTS CLOCKING ZONES DOESNT CONTAIN PRED NODE" << std::endl;
-                tile_inp_feeders_clk_zone.push_back(-1);
+                tile_inp_feeders_clk_zone.push_back(0);
                 return;
             }
 
@@ -351,10 +397,47 @@ class apply_gate_library_impl
             tile_inp_feeders.push_back(oppositePort);
             get_tile_inp_feeders_clk_zone(oppositePort);
         }
-        std::cout << " -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
 
-        std::cout << " -- TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone) << std::endl;
+        auto update_tile_clk_zone =
+            [this, &tile_inp_feeders_clk_zone, &node_outputs_clocking_zones_map, &tile](auto tile_inp_feeders)
+        {
+            std::cout << "\t -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
 
+            std::cout << "\t -- TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone)
+                      << std::endl;
+
+            // A* algorithm
+            // auto d_astar{ns_search::a_star::run(
+            //     t, p.at(v), [&](Tile dest) -> Tiles { return f_get_candidates(dest, 1); },
+            //     [&](Tile dest) -> bool { return fn(p).val().has(dest); },
+            //     [](Tile t1, Tile t2) { return ns_heuristics::manhattan::run(t1, t2); })};
+
+            bool different_clk_zones = false;
+            if (tile_inp_feeders_clk_zone.size() == 0)
+            {
+                return;
+            }
+
+            for (size_t i{0}; i < tile_inp_feeders_clk_zone.size(); ++i)
+            {
+                if (i > 0 && tile_inp_feeders_clk_zone.at(i) != tile_inp_feeders_clk_zone.at(i - 1))
+                {
+                    different_clk_zones = true;
+                }
+            }
+
+            // TODO: I need to run an A* algorithm to mount clock zone sequences from inputs to outputs
+            if (!different_clk_zones)
+            {
+                // Run routine to update the tile clock zone based on the value of one of the inputs
+                // Clock zone index
+                int clk_zone_idx = tile_inp_feeders_clk_zone.at(0);
+            }
+
+            std::cout << "\t -- DIFFERENT CLK ZONES: " << fmt::format("{}", different_clk_zones) << std::endl;
+        };
+
+        update_tile_clk_zone(tile_inp_feeders);
         // Iterate over inputs and update their clock zones based on the tile_inp_feeders_clk_zone or their default
         // clock zone
 
