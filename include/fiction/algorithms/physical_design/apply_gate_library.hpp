@@ -20,8 +20,10 @@
 #include <celaeno/heuristics/euclidian.hpp>
 
 // #include <algorithm>
+#include <array>
 #include <cstddef>
 // #include <cstdint>
+#include <cstdint>
 #include <ctime>
 #include <iostream>
 // #include <iterator>
@@ -133,7 +135,7 @@ class apply_gate_library_impl
         tile_gate_cell_layout_map;
 
     template <typename T>
-    decltype(auto) path(Coord<T>&& p1, Coord<T>&& p2, ClockingZonesTilesPair& clock_zones_map) noexcept
+    decltype(auto) path(Coord<T>&& p1, Coord<T>&& p2, std::array<std::array<int, 5>, 5>& clock_zones_map) noexcept
     {
         auto neighbors = [&clock_zones_map](auto&& pair) constexpr -> std::vector<std::pair<int64_t, int64_t>>
         {
@@ -147,8 +149,8 @@ class apply_gate_library_impl
 
             for (auto& p : possible_neighbors)
             {
-                auto it       = std::find(clock_zones_map.first.begin(), clock_zones_map.first.end(), p);
-                auto indexOfP = std::distance(clock_zones_map.first.begin(), it);
+                auto it       = std::find(clock_zones_map.begin(), clock_zones_map.end(), p);
+                auto indexOfP = std::distance(clock_zones_map.begin(), it);
                 if ((it != clock_zones_map.first.end()) && clock_zones_map.second.at(indexOfP) >= 0)
                 {
                     neighbors.push_back(p);
@@ -315,6 +317,7 @@ class apply_gate_library_impl
         auto                       gate_clk_sch  = gclk;
         const auto                 tile_portlist = tile_gate_cell_layout_map.at(tile).first;
         std::vector<port_position> tile_inps(tile_portlist.inp.begin(), tile_portlist.inp.end());
+        std::vector<port_position> tile_outs(tile_portlist.out.begin(), tile_portlist.out.end());
         const auto                 first_inp = tile_inps[0];
         auto                       pred_biggest_clk_number{-1};
         std::cout << " -- TILE INP PORTS: " << fmt::format("{}", tile_inps) << std::endl;
@@ -398,8 +401,8 @@ class apply_gate_library_impl
             get_tile_inp_feeders_clk_zone(oppositePort);
         }
 
-        auto update_tile_clk_zone =
-            [this, &tile_inp_feeders_clk_zone, &node_outputs_clocking_zones_map, &tile](auto tile_inp_feeders)
+        auto update_tile_clk_zone = [this, &tile_inp_feeders_clk_zone, &tile_inps, &tile_outs,
+                                     &node_outputs_clocking_zones_map, &tile, &gate_clk_sch](auto tile_inp_feeders)
         {
             std::cout << "\t -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
 
@@ -407,10 +410,24 @@ class apply_gate_library_impl
                       << std::endl;
 
             // A* algorithm
-            // auto d_astar{ns_search::a_star::run(
-            //     t, p.at(v), [&](Tile dest) -> Tiles { return f_get_candidates(dest, 1); },
-            //     [&](Tile dest) -> bool { return fn(p).val().has(dest); },
-            //     [](Tile t1, Tile t2) { return ns_heuristics::manhattan::run(t1, t2); })};
+            std::cout << "\t -- TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
+            for (size_t i{0}; i < tile_inps.size(); ++i)
+            {
+                std::cout << "\t -- TILE INP: " << fmt::format("{}", tile_inps.at(i)) << std::endl;
+                std::cout << "\t -- TILE OUTS: " << fmt::format("{}", tile_outs) << std::endl;
+                for (size_t i{0}; i < tile_outs.size(); ++i)
+                {
+                    Coord<int64_t> src{std::make_pair(tile_inps.at(i).first, tile_inps.at(i).second)};
+                    Coord<int64_t> dst{std::make_pair(tile_outs.at(i).first, tile_outs.at(i).second)};
+                    auto           clk_zone_sequence_to_update{this->path(src, dst, gate_clk_sch)};
+                    if (clk_zone_sequence_to_update)
+                    {
+                        std::cout << "Tile {} Src {} - Dst {} - A*: {}", tile, tile_inps.at(i), tile_outs.at(i),
+                            *clk_zone_sequence_to_update << std::endl;
+                    }
+                    std::cout << "\t -- TILE OUT: " << fmt::format("{}", tile_outs.at(i)) << std::endl;
+                }
+            }
 
             bool different_clk_zones = false;
             if (tile_inp_feeders_clk_zone.size() == 0)
