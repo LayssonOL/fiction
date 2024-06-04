@@ -135,7 +135,7 @@ class apply_gate_library_impl
         tile_gate_cell_layout_map;
 
     template <typename T>
-    decltype(auto) path(Coord<T>&& p1, Coord<T>&& p2, std::array<std::array<int, 5>, 5>& clock_zones_map) noexcept
+    decltype(auto) path(Coord<T> p1, Coord<T> p2, std::array<std::array<int, 5>, 5>& clock_zones_map) noexcept
     {
         auto neighbors = [&clock_zones_map](auto&& pair) constexpr -> std::vector<std::pair<int64_t, int64_t>>
         {
@@ -149,12 +149,22 @@ class apply_gate_library_impl
 
             for (auto& p : possible_neighbors)
             {
-                auto it       = std::find(clock_zones_map.begin(), clock_zones_map.end(), p);
-                auto indexOfP = std::distance(clock_zones_map.begin(), it);
-                if ((it != clock_zones_map.first.end()) && clock_zones_map.second.at(indexOfP) >= 0)
+                // auto it       = std::find(clock_zones_map.begin(), clock_zones_map.end(), p);
+                // auto indexOfP = std::distance(clock_zones_map.begin(), it);
+                // for (size_t x = 0; x < 5; x++)
+                // {
+                //     for (size_t y = 0; y < 5; y++)
+                //     {
+                if (clock_zones_map[p.first][p.second] > 0)
                 {
                     neighbors.push_back(p);
                 }
+                //     }
+                // }
+                // if ((it != clock_zones_map.end()) && clock_zones_map.second.at(indexOfP) >= 0)
+                // {
+                //     neighbors.push_back(p);
+                // }
             }
 
             return neighbors;
@@ -404,28 +414,41 @@ class apply_gate_library_impl
         auto update_tile_clk_zone = [this, &tile_inp_feeders_clk_zone, &tile_inps, &tile_outs,
                                      &node_outputs_clocking_zones_map, &tile, &gate_clk_sch](auto tile_inp_feeders)
         {
-            std::cout << "\t -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
+            std::cout << "\n\t\t UPDATE TILE: " << fmt::format("X: {} - Y: {}", tile.x, tile.y) << " CLK ZONE "
+                      << std::endl;
+            std::cout << "\t\t -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
 
-            std::cout << "\t -- TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone)
+            std::cout << "\t\t -- TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone)
                       << std::endl;
 
             // A* algorithm
-            std::cout << "\t -- TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
+            std::cout << "\t\t -- TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
             for (size_t i{0}; i < tile_inps.size(); ++i)
             {
-                std::cout << "\t -- TILE INP: " << fmt::format("{}", tile_inps.at(i)) << std::endl;
-                std::cout << "\t -- TILE OUTS: " << fmt::format("{}", tile_outs) << std::endl;
+                std::cout << "\t\t -- TILE INP: " << fmt::format("{}", tile_inps.at(i)) << std::endl;
+                std::cout << "\t\t -- TILE OUTS: " << fmt::format("{}", tile_outs) << std::endl;
                 for (size_t i{0}; i < tile_outs.size(); ++i)
                 {
-                    Coord<int64_t> src{std::make_pair(tile_inps.at(i).first, tile_inps.at(i).second)};
-                    Coord<int64_t> dst{std::make_pair(tile_outs.at(i).first, tile_outs.at(i).second)};
+                    Coord<int64_t> src{std::make_pair(tile_inps.at(i).x, tile_inps.at(i).y)};
+                    Coord<int64_t> dst{std::make_pair(tile_outs.at(i).x, tile_outs.at(i).y)};
                     auto           clk_zone_sequence_to_update{this->path(src, dst, gate_clk_sch)};
+                    // std::string    astarPath = "";
+
+                    // for (auto clk_zone : *clk_zone_sequence_to_update)
+                    // {
+                    //     astarPath += fmt::format("{}", clk_zone);
+                    //     astarPath += " -> ";
+                    // }
+                    // astarPath += "END";
+                    // std::cout << "\t -- A* PATH: " << astarPath << std::endl;
+
                     if (clk_zone_sequence_to_update)
                     {
-                        std::cout << "Tile {} Src {} - Dst {} - A*: {}", tile, tile_inps.at(i), tile_outs.at(i),
-                            *clk_zone_sequence_to_update << std::endl;
+                        std::cout << fmt::format("Tile {} Src {} - Dst {} - A*: {}", tile, tile_inps.at(i),
+                                                 tile_outs.at(i), *clk_zone_sequence_to_update)
+                                  << std::endl;
                     }
-                    std::cout << "\t -- TILE OUT: " << fmt::format("{}", tile_outs.at(i)) << std::endl;
+                    std::cout << "\t\t -- TILE OUT: " << fmt::format("{}", tile_outs.at(i)) << std::endl;
                 }
             }
 
