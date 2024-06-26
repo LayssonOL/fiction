@@ -26,6 +26,8 @@
 #include <cstdint>
 #include <ctime>
 #include <iostream>
+#include <map>
+#include <ostream>
 // #include <iterator>
 // #include <map>
 // #include <type_traits>
@@ -51,7 +53,7 @@ namespace a_star        = celaeno::graph::search::a_star;
 namespace fc            = fiction;
 
 using float64_t              = double;
-using ClockingZonesTilesPair = std::pair<std::vector<port_position>, std::vector<int>>;
+using ClockingZonesTilesPair = std::map<port_position, int>;
 using ClockingZonesMap       = std::map<int, ClockingZonesTilesPair>;
 
 template <typename T>
@@ -94,8 +96,6 @@ class apply_gate_library_impl
 
                     const auto tp = GateLibrary::set_up_gate(gate_lyt, t);
 
-                    ClockingZonesMap node_outputs_clocking_zones_map;
-
                     auto tile = std::get<0>(tp);
                     // auto pred_tile = std::get<1>(tp);
                     std::vector<fc::tile<GateLyt>> pred_tiles = tile_preds_map[tile];
@@ -106,7 +106,7 @@ class apply_gate_library_impl
                     auto clock_scheme = pr.second;
                     tile_gate_cell_layout_map.emplace(std::make_pair(t, std::make_pair(portlist, clock_scheme)));
 
-                    assign_gate(c, pred_tiles, tile, pr, n, node_outputs_clocking_zones_map);
+                    assign_gate(c, pred_tiles, tile, pr, n);
                 }
 #if (PROGRESS_BARS)
                 // update progress
@@ -132,7 +132,8 @@ class apply_gate_library_impl
     GateLyt gate_lyt;
     CellLyt cell_lyt;
     std::map<tile<GateLyt>, std::pair<port_list<port_position>, typename GateLibrary::fcn_clk_sch>>
-        tile_gate_cell_layout_map;
+                     tile_gate_cell_layout_map;
+    ClockingZonesMap node_outputs_clocking_zones_map;
 
     template <typename T>
     decltype(auto) path(Coord<T> p1, Coord<T> p2, std::array<std::array<int, 5>, 5>& clock_zones_map) noexcept
@@ -141,49 +142,54 @@ class apply_gate_library_impl
         {
             std::vector<std::pair<int64_t, int64_t>> possible_neighbors = {{
                 {pair.first + 1, pair.second},
-                {pair.first - 1, pair.second},
                 {pair.first, pair.second + 1},
                 {pair.first, pair.second - 1},
+                {pair.first - 1, pair.second},
             }};
-            std::vector<std::pair<int64_t, int64_t>> neighbors{};
+            // std::vector<std::pair<int64_t, int64_t>> neighbors{};
+            //
+            // for (auto& p : possible_neighbors)
+            // {
+            //     if (p.first >= 0 && p.first < 5 && p.second >= 0 && p.second < 5 &&
+            //         clock_zones_map[p.first][p.second] >= 0 && clock_zones_map[p.first][p.second] < 5)
+            //     {
+            //         neighbors.push_back(p);
+            //     }
+            // }
 
-            for (auto& p : possible_neighbors)
-            {
-                // auto it       = std::find(clock_zones_map.begin(), clock_zones_map.end(), p);
-                // auto indexOfP = std::distance(clock_zones_map.begin(), it);
-                // for (size_t x = 0; x < 5; x++)
-                // {
-                //     for (size_t y = 0; y < 5; y++)
-                //     {
-                if (clock_zones_map[p.first][p.second] > 0)
-                {
-                    neighbors.push_back(p);
-                }
-                //     }
-                // }
-                // if ((it != clock_zones_map.end()) && clock_zones_map.second.at(indexOfP) >= 0)
-                // {
-                //     neighbors.push_back(p);
-                // }
-            }
-
-            return neighbors;
+            return possible_neighbors;
         };
 
         return a_star::run(
             std::forward<Coord<T>>(p1), std::forward<Coord<T>>(p2),
             [&](Coord<T> src) -> std::vector<std::pair<int64_t, int64_t>> { return neighbors(src); },
-            [&](Coord<T> dest) -> bool { return true; },
+            [&](Coord<T> dest) -> bool
+            {
+                bool position_with_clk_zone =
+                    clock_zones_map[dest.first][dest.second] >= 0 && clock_zones_map[dest.first][dest.second] < 4;
+                bool valid_clk_zone =
+                    dest.first >= 0 && dest.second >= 0 && dest.first < 5 && dest.second < 5 && position_with_clk_zone;
+
+                if (valid_clk_zone)
+                {
+                    std::cout << fmt::format("\t\tDEST {} - X {} & Y {} - CLK ZONE {}", dest, dest.first, dest.second,
+                                             clock_zones_map[dest.first][dest.second])
+                              << std::endl;
+                }
+                return valid_clk_zone;
+            },
             [&](auto&& a, auto&& b) -> float64_t
             {
-                auto m{ns_heuristics::euclidian::run(a, b)};
+                auto m{1};
+                // auto m{ns_heuristics::manhattan::run(a, b)};
+                // auto m{ns_heuristics::euclidian::run(a, b)};
+                // return clock_zones_map[b.first][b.second];
                 return m;
             });
     }
 
     void assign_gate(const cell<CellLyt>& c, const std::vector<tile<GateLyt>>& pred_tiles, const tile<GateLyt>& tile,
-                     const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n,
-                     ClockingZonesMap& node_outputs_clocking_zones_map)
+                     const typename GateLibrary::fcn_gate_clk_sch& gclk, const mockturtle::node<GateLyt>& n)
     {
         auto start_x = c.x;
         auto start_y = c.y;
@@ -207,23 +213,27 @@ class apply_gate_library_impl
             std::cout << " TILE OUTS: " << fmt::format("{}", tile_portlist.out) << "\n\n" << std::endl;
         }
 
-        auto checked_clk_zone = assign_clock_zones(pred_tiles, tile, gclk, is_gate,
-                                                   std::forward<ClockingZonesMap&>(node_outputs_clocking_zones_map));
+        auto checked_clk_zone = assign_clock_zones(pred_tiles, tile, gclk, is_gate);
 
         ClockingZonesTilesPair updated_clock_zones;
 
-        std::cout << " ## UPDATED TILE OUTS: " << fmt::format("{}", tile_portlist.out) << "\n\n" << std::endl;
+        std::cout << " ## UPDATED TILE OUTS: " << fmt::format("{}", tile_portlist.out) << "\n" << std::endl;
         for (auto out : tile_portlist.out)
         {
             std::cout << " OUT: " << fmt::format("{}", out)
-                      << " CLOCK ZONE: " << fmt::format("{}", checked_clk_zone[out.x][out.y]) << "\n\n"
+                      << " CLOCK ZONE: " << fmt::format("{}", checked_clk_zone[out.y][out.x]) << "\n"
                       << std::endl;
-            updated_clock_zones.first.push_back(out);
-            updated_clock_zones.second.push_back(checked_clk_zone[out.x][out.y]);
+            updated_clock_zones[out] = checked_clk_zone[out.y][out.x];
         }
 
-        node_outputs_clocking_zones_map.insert(
-            {std::stoi(fmt::format("{}", n)), std::make_pair(updated_clock_zones.first, updated_clock_zones.second)});
+        std::cout << fmt::format("INSERTION OF {}", n) << std::endl;
+        this->node_outputs_clocking_zones_map[n] = updated_clock_zones;
+        std::cout << "SIZE OF node_outputs_clocking_zones_map is now " << this->node_outputs_clocking_zones_map.size()
+                  << std::endl;
+        if (GateLibrary::is_crosswire(gclk.first))
+        {}
+        else
+        {}
 
         for (auto y = 0ul; y < g.size(); ++y)
         {
@@ -250,8 +260,7 @@ class apply_gate_library_impl
     }
 
     GateLibrary::fcn_clk_sch assign_clock_zones(const std::vector<tile<GateLyt>>& pred_tiles, const tile<GateLyt>& tile,
-                                                const typename GateLibrary::fcn_gate_clk_sch& gpair, bool is_gate,
-                                                ClockingZonesMap& node_outputs_clocking_zones_map)
+                                                const typename GateLibrary::fcn_gate_clk_sch& gpair, bool is_gate)
     {
         std::cout << "\n --------------------- ASSIGN CLOCK ZONES ---------------------\n" << std::endl;
 
@@ -295,34 +304,6 @@ class apply_gate_library_impl
             std::cout << " -- Tile FIRST INP: " << fmt::format("{}", first_inp) << "\n\n" << std::endl;
         }
 
-        /*
-         * Get the pred tile and its output port list*/
-
-        // std::cout << "\n ## Pred Tile: " << fmt::format("{}", pred_tile) << std::endl;
-        // std::cout << " ## Tile: " << fmt::format("{}", tile) << std::endl;
-        // std::cout << " ## FCN GATE TYPE: " << fmt::format("{}", cell) << std::endl;
-        // std::cout << " ## FCN GATE CLK SCH TYPE: " << fmt::format("{}", typeid(gclk).name()) << std::endl;
-        //
-        // const auto                 pred_tile_pair      = tile_gate_cell_layout_map.at(pred_tile);
-        // const auto                 pred_tile_port_list = pred_tile_pair.first;
-        // const auto                 pred_tile_clk_sch   = pred_tile_pair.second;
-        // std::vector<port_position> vc(pred_tile_port_list.out.begin(), pred_tile_port_list.out.end());
-        // std::cout << "## Pred OUT PORTS: " << fmt::format("{}", vc) << std::endl;
-
-        /*
-         * Get the pred tile outputs clocking zones*/
-
-        // auto pred_node = gate_lyt.get_node(pred_tile);
-        //
-        // std::pair<std::vector<port_position>, std::vector<int>> pred_output_clckzns;
-        //
-        // if (auto pred_node_clkzn = node_outputs_clocking_zones_map.find(pred_node);
-        //     pred_node_clkzn != node_outputs_clocking_zones_map.end())
-        // {
-        //     pred_output_clckzns = pred_node_clkzn->second;
-        // }
-        // pred_output_clckzns = node_outputs_clocking_zones_map.at(pred_node);
-
         // std::cout << "\n ## Tile: " << fmt::format("{}", tile) << std::endl;
         auto                       gate_clk_sch  = gclk;
         const auto                 tile_portlist = tile_gate_cell_layout_map.at(tile).first;
@@ -330,32 +311,7 @@ class apply_gate_library_impl
         std::vector<port_position> tile_outs(tile_portlist.out.begin(), tile_portlist.out.end());
         const auto                 first_inp = tile_inps[0];
         auto                       pred_biggest_clk_number{-1};
-        std::cout << " -- TILE INP PORTS: " << fmt::format("{}", tile_inps) << std::endl;
-
-        // std::cout << " ## Pred Tile OUT PORTS: " << fmt::format("{}", pred_output_clckzns.first) << std::endl;
-        // std::cout << " ## Pred Tile OUT CLK ZONES: " << fmt::format("{}", pred_output_clckzns.second) << std::endl;
-
-        /*
-         * Get the pred tile biggest clk number*/
-
-        // if (pred_output_clckzns.first.size() > 0)
-        // {
-        //     auto pred_output_biggest_clk_number{
-        //         std::max_element(pred_output_clckzns.second.begin(), pred_output_clckzns.second.end())};
-        //     std::cout << "## PRED TILE OUTPUT BIGGEST CLK NUMBER: "
-        //               << fmt::format("{}", *pred_output_biggest_clk_number) << std::endl;
-        //
-        //     pred_biggest_clk_number = *pred_output_biggest_clk_number;
-        //
-        //     auto pred_biggest_clk_index{
-        //         std::distance(pred_output_clckzns.second.begin(), pred_output_biggest_clk_number)};
-        //     std::cout << "## PRED TILE OUTPUT BIGGEST CLK INDEX: " << fmt::format("{}", pred_biggest_clk_index)
-        //               << std::endl;
-        //
-        //     auto pred_biggest_clk_port = pred_output_clckzns.first[pred_biggest_clk_index];
-        //     std::cout << "## PRED TILE OUTPUT BIGGEST CLK PORT: " << fmt::format("{}", pred_biggest_clk_port)
-        //               << std::endl;
-        // }
+        std::cout << " TILE INP PORTS: " << fmt::format("{}", tile_inps) << std::endl;
 
         std::vector<int> tile_inps_clk_zone(tile_inps.size(), 0);
 
@@ -364,17 +320,48 @@ class apply_gate_library_impl
         std::vector<port_position> tile_feeders;
         std::vector<int>           tile_inp_feeders_clk_zone;
 
-        auto get_tile_inp_feeders_clk_zone =
-            [this, &tile_inp_feeders_clk_zone, &node_outputs_clocking_zones_map, &tile](auto tilePort)
+        auto get_pred_node_by_port = [this](auto& tile, auto oppositePort) -> std::pair<int, std::pair<int, int>>
+        {
+            std::cout << "\t OPPOSITE PORT: " << fmt::format("{}", oppositePort) << "" << std::endl;
+            int                 node = -1;
+            std::pair<int, int> tl{};
+            if (oppositePort.x == 0)
+            {
+                std::cout << "\t -- PRED TILE: " << fmt::format("X: {} - Y: {}", tile.x + 1, tile.y) << std::endl;
+                tl   = std::make_pair(tile.x + 1, tile.y);
+                node = this->gate_lyt.get_node({tile.x + 1, tile.y});
+            }
+            else if (oppositePort.x == 4)
+            {
+                std::cout << "\t -- PRED TILE: " << fmt::format("X: {} - Y: {}", tile.x - 1, tile.y) << std::endl;
+                tl   = std::make_pair(tile.x - 1, tile.y);
+                node = this->gate_lyt.get_node({tile.x - 1, tile.y});
+            }
+            else if (oppositePort.y == 0)
+            {
+                std::cout << "\t -- PRED TILE: " << fmt::format("X: {} - Y: {}", tile.x, tile.y + 1) << std::endl;
+                tl   = std::make_pair(tile.x, tile.y + 1);
+                node = this->gate_lyt.get_node({tile.x, tile.y + 1});
+            }
+            else if (oppositePort.y == 4)
+            {
+                std::cout << "\t -- PRED TILE: " << fmt::format("X: {} - Y: {}", tile.x, tile.y - 1) << std::endl;
+                tl   = std::make_pair(tile.x, tile.y - 1);
+                node = this->gate_lyt.get_node({tile.x, tile.y - 1});
+            }
+
+            return std::make_pair(node, tl);
+        };
+
+        auto get_tile_inp_feeders_clk_zone = [this, &get_pred_node_by_port, &tile_inp_feeders_clk_zone,
+                                              &tile](auto tilePort, std::vector<port_position> tile_inp_feeders)
         {
             std::cout << "\n\t -- SEARCH CLK ZN FOR PORT: " << fmt::format("{}", tilePort) << std::endl;
-            auto deltaX    = tile.x - tilePort.x;
-            auto deltaY    = tile.y - tilePort.y;
-            int  predTileX = tile.x + deltaX;
-            int  predTileY = tile.y + deltaY;
 
-            std::cout << "\t -- PRED TILE: " << fmt::format("X: {} - Y: {}", predTileX, predTileY) << std::endl;
-            auto predNode = this->gate_lyt.get_node({predTileX, predTileY});
+            auto predPair  = get_pred_node_by_port(tile, tilePort);
+            auto predNode  = predPair.first;
+            auto predTileY = predPair.second.first;
+            auto predTileX = predPair.second.second;
 
             std::cout << "\t -- PRED NODE: " << fmt::format("{}", predNode) << std::endl;
 
@@ -383,101 +370,123 @@ class apply_gate_library_impl
                 return;
             }
 
-            if (node_outputs_clocking_zones_map.find(predNode) == node_outputs_clocking_zones_map.end())
+            if (this->node_outputs_clocking_zones_map.find(predNode) == this->node_outputs_clocking_zones_map.end())
             {
                 std::cout << "\t -- OUTPUTS CLOCKING ZONES DOESNT CONTAIN PRED NODE" << std::endl;
                 tile_inp_feeders_clk_zone.push_back(0);
                 return;
             }
 
-            auto predNodeOutputsClockingZones = node_outputs_clocking_zones_map.at(predNode);
+            std::cout << "\t -- NODE OUTPUTS CLK ZONES contains " << predNode << std::endl;
+
+            auto predNodeOutputsClockingZones = this->node_outputs_clocking_zones_map.at(predNode);
             std::cout << "\t -- OUTPUTS CLOCKING ZONES: " << fmt::format("{}", predNodeOutputsClockingZones)
                       << std::endl;
 
-            for (size_t i{0}; i < predNodeOutputsClockingZones.first.size(); ++i)
+            for (auto feeder_port : tile_inp_feeders)
             {
-                if (predNodeOutputsClockingZones.first.at(i).x == predTileX &&
-                    predNodeOutputsClockingZones.first.at(i).y == predTileY)
+                std::cout << fmt::format("\t == Feeder port X: {} - Y: {}", feeder_port.x, feeder_port.y) << std::endl;
+                if (predNodeOutputsClockingZones.find(feeder_port) != predNodeOutputsClockingZones.end())
                 {
-                    tile_inp_feeders_clk_zone.push_back(predNodeOutputsClockingZones.second.at(i));
+                    auto clk_zone = predNodeOutputsClockingZones.at(feeder_port);
+                    tile_inp_feeders_clk_zone.push_back(clk_zone);
                 }
             }
+        };
+
+        auto get_tile_inps_clk_zone = [this, &tile_inp_feeders_clk_zone, &tile_inps, &tile_outs, &tile, &gate_clk_sch](
+                                          auto tile_inp_feeders) -> std::vector<std::pair<port_position, int>>
+        {
+            // print a section separator
+            std::cout << "\n\t ============ GET TILE INPS CLK ZONES ===============" << std::endl;
+            std::cout << "\n\t\t TILE " << fmt::format("X: {} - Y: {}", tile.x, tile.y) << std::endl;
+
+            std::cout << "\t\t TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
+            std::cout << "\t\t TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
+            std::cout << "\t\t TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone)
+                      << std::endl;
+
+            std::vector<std::pair<port_position, int>> new_inps_clk_zones;
+
+            bool different_clk_zones = false;
+            if (tile_inp_feeders_clk_zone.size() == 0)
+            {
+                for (size_t i{0}; i < tile_inps.size(); i++)
+                {
+                    auto ty         = tile_inps[i].y;
+                    auto tx         = tile_inps[i].x;
+                    auto i_clk_zone = gate_clk_sch[ty][tx];
+                    std::cout << fmt::format("TY: {} - TX: {} - I CLK ZONE: {}", ty, tx, i_clk_zone) << std::endl;
+                    new_inps_clk_zones.push_back(std::pair(tile_inps[i], i_clk_zone));
+                }
+            }
+            else if (tile_inp_feeders_clk_zone.size() == 1)
+            {
+                auto feeder_clk_zn = tile_inp_feeders_clk_zone.at(0);
+                new_inps_clk_zones.push_back(std::pair(tile_inps.at(0), feeder_clk_zn + 1));
+            }
+            else
+            {
+                for (size_t i{0}; i < tile_inp_feeders_clk_zone.size(); ++i)
+                {
+                    if (i > 0 && tile_inp_feeders_clk_zone.at(i) != tile_inp_feeders_clk_zone.at(i - 1))
+                    {
+                        different_clk_zones = true;
+                    }
+                }
+                // TODO: I need to run an A* algorithm to mount clock zone sequences from inputs to outputs
+                if (!different_clk_zones)
+                {
+                    // Run routine to update the tile clock zone based on the value of one of the inputs
+                    // Clock zone index
+                    int clk_zone_idx = tile_inp_feeders_clk_zone.at(0);
+                }
+            }
+
+            std::cout << "\n\t DIFFERENT CLK ZONES: " << fmt::format("{}", different_clk_zones) << std::endl;
+            std::cout << "\t ============ GET TILE INPS CLK ZONES ===============" << std::endl;
+            return new_inps_clk_zones;
+        };
+
+        auto update_tile_clock_zones_sequence =
+            [this, &tile_inps, &tile_outs, &tile, &gate_clk_sch, &get_tile_inps_clk_zone](auto tile_inp_feeders)
+        {
+            auto tile_inp_clk_zones = get_tile_inps_clk_zone(tile_inp_feeders);
+            std::cout << fmt::format("\n\t TILE INP CLK ZONES: {}", tile_inp_clk_zones) << std::endl;
+            std::cout << "\n\t ============ UPDATE TILE CLK SEQUENCE ===============" << std::endl;
+
+            std::cout << "\t\t TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
+            std::cout << "\t\t TILE OUTS: " << fmt::format("{}", tile_outs) << std::endl;
+
+            for (size_t i{0}; i < tile_inps.size(); ++i)
+            {
+                for (size_t i{0}; i < tile_outs.size(); ++i)
+                {
+                    Coord<int64_t> src{std::make_pair(tile_inps.at(i).x, tile_inps.at(i).y)};
+                    Coord<int64_t> dst{std::make_pair(tile_outs.at(i).x, tile_outs.at(i).y)};
+                    std::cout << fmt::format("\t\t SEARCH PATH FROM {} TO {}", src, dst) << std::endl;
+                    auto clk_zone_sequence_to_update{this->path(src, dst, gate_clk_sch)};
+
+                    if (clk_zone_sequence_to_update)
+                    {
+                        std::cout << fmt::format("\t\t Tile {} Src {} - Dst {} - A*: {}", tile, tile_inps.at(i),
+                                                 tile_outs.at(i), *clk_zone_sequence_to_update)
+                                  << std::endl;
+                    }
+                }
+            }
+            std::cout << "\t ============ UPDATE TILE CLK SEQUENCE ===============" << std::endl;
         };
 
         for (size_t i{0}; i < tile_inps.size(); ++i)
         {
             auto oppositePort = GateLibrary::opposite(tile_inps[i]);
             tile_inp_feeders.push_back(oppositePort);
-            get_tile_inp_feeders_clk_zone(oppositePort);
+            get_tile_inp_feeders_clk_zone(oppositePort, tile_inp_feeders);
         }
 
-        auto update_tile_clk_zone = [this, &tile_inp_feeders_clk_zone, &tile_inps, &tile_outs,
-                                     &node_outputs_clocking_zones_map, &tile, &gate_clk_sch](auto tile_inp_feeders)
-        {
-            std::cout << "\n\t\t UPDATE TILE: " << fmt::format("X: {} - Y: {}", tile.x, tile.y) << " CLK ZONE "
-                      << std::endl;
-            std::cout << "\t\t -- TILE INP FEEDERS: " << fmt::format("{}", tile_inp_feeders) << std::endl;
+        update_tile_clock_zones_sequence(tile_inp_feeders);
 
-            std::cout << "\t\t -- TILE INP FEEDERS CLK ZONES: " << fmt::format("{}", tile_inp_feeders_clk_zone)
-                      << std::endl;
-
-            // A* algorithm
-            std::cout << "\t\t -- TILE INPS: " << fmt::format("{}", tile_inps) << std::endl;
-            for (size_t i{0}; i < tile_inps.size(); ++i)
-            {
-                std::cout << "\t\t -- TILE INP: " << fmt::format("{}", tile_inps.at(i)) << std::endl;
-                std::cout << "\t\t -- TILE OUTS: " << fmt::format("{}", tile_outs) << std::endl;
-                for (size_t i{0}; i < tile_outs.size(); ++i)
-                {
-                    Coord<int64_t> src{std::make_pair(tile_inps.at(i).x, tile_inps.at(i).y)};
-                    Coord<int64_t> dst{std::make_pair(tile_outs.at(i).x, tile_outs.at(i).y)};
-                    auto           clk_zone_sequence_to_update{this->path(src, dst, gate_clk_sch)};
-                    // std::string    astarPath = "";
-
-                    // for (auto clk_zone : *clk_zone_sequence_to_update)
-                    // {
-                    //     astarPath += fmt::format("{}", clk_zone);
-                    //     astarPath += " -> ";
-                    // }
-                    // astarPath += "END";
-                    // std::cout << "\t -- A* PATH: " << astarPath << std::endl;
-
-                    if (clk_zone_sequence_to_update)
-                    {
-                        std::cout << fmt::format("Tile {} Src {} - Dst {} - A*: {}", tile, tile_inps.at(i),
-                                                 tile_outs.at(i), *clk_zone_sequence_to_update)
-                                  << std::endl;
-                    }
-                    std::cout << "\t\t -- TILE OUT: " << fmt::format("{}", tile_outs.at(i)) << std::endl;
-                }
-            }
-
-            bool different_clk_zones = false;
-            if (tile_inp_feeders_clk_zone.size() == 0)
-            {
-                return;
-            }
-
-            for (size_t i{0}; i < tile_inp_feeders_clk_zone.size(); ++i)
-            {
-                if (i > 0 && tile_inp_feeders_clk_zone.at(i) != tile_inp_feeders_clk_zone.at(i - 1))
-                {
-                    different_clk_zones = true;
-                }
-            }
-
-            // TODO: I need to run an A* algorithm to mount clock zone sequences from inputs to outputs
-            if (!different_clk_zones)
-            {
-                // Run routine to update the tile clock zone based on the value of one of the inputs
-                // Clock zone index
-                int clk_zone_idx = tile_inp_feeders_clk_zone.at(0);
-            }
-
-            std::cout << "\t -- DIFFERENT CLK ZONES: " << fmt::format("{}", different_clk_zones) << std::endl;
-        };
-
-        update_tile_clk_zone(tile_inp_feeders);
         // Iterate over inputs and update their clock zones based on the tile_inp_feeders_clk_zone or their default
         // clock zone
 
