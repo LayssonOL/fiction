@@ -162,7 +162,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         }
 
         const auto pair      = determine_port_routing(lyt, t);
-        const auto p         = pair.second;
+        auto       p         = pair.second;
         const auto pred_tile = pair.first;
         // FMTPRINT(" ==> Pair first inp: ", p.inp);
         // FMTPRINT(" ==> Pair first out: ", p.out);
@@ -188,12 +188,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        auto cw_p = pair.second;
-                        cw_p.inp.emplace(2u, 0u);
-                        cw_p.out.emplace(2u, 4u);
+                        p.inp.emplace(2u, 0u);
+                        p.out.emplace(2u, 4u);
                         // auto crosswire_print = fmt::format("\nCROSSWIRE: {} - INP: {} - OUT: {}", a, p.inp, p.out);
                         // std::cout << crosswire_print << std::endl;
-                        return {t, pred_tile, cw_p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
+                        return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
                     auto wire            = WIRE_MAP.at(p);
@@ -794,7 +793,6 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PI determines input according to successor
             if (lyt.is_pi(n))
             {
-                // LOG("IS PI");
                 // if successor is a fan-out, input port is at (0,3) and output port at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
@@ -814,6 +812,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 {
                     pred_tile.x = pred_tile.x - 1;
                     p.inp.emplace(0u, 2u);
+                    p.out.emplace(4u, 2u);
                 }
                 // if output is south-eastern, input port is at (0,2)
                 else if (lyt.has_south_eastern_outgoing_signal(t))
