@@ -1200,7 +1200,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     {{
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
-        {' ', 'n', 'N', 'n', 'n'},
+        {' ', ' ', 'N', 'n', 'n'},
         {' ', ' ', ' ', ' ', ' '},
         {' ', ' ', ' ', ' ', ' '},
     }})};
@@ -1209,7 +1209,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     {{
         {-1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1},
-        { 0,  0,  1,  1,  1},
+        {-1, -1,  0,  0,  1},
         {-1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1},
     }})};
@@ -1425,7 +1425,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 2)}, {}}, INPUT_MIDDLER_WIRE},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, MIDDLER_WIRE},
         {{{}, {port_position(3, 0)}}, MIDDLER_WIRE},
-        {{{port_position(0, 0)}, {}}, MIDDLER_WIRE},
+        {{{port_position(0, 0)}, {}}, INPUT_MIDDLER_WIRE},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, rotate_180(LOWER_WIRE)},
         {{{}, {port_position(3, 3)}}, rotate_180(LOWER_WIRE)},
         {{{port_position(0, 3)}, {}}, rotate_180(LOWER_WIRE)},
@@ -1476,7 +1476,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 2)}, {}}, INPUT_MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, MIDDLER_WIRE_CLOCK_SCHEME},
         {{{}, {port_position(3, 0)}}, MIDDLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 0)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {}}, INPUT_MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         {{{}, {port_position(3, 3)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         {{{port_position(0, 3)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},

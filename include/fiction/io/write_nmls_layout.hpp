@@ -463,7 +463,7 @@ class write_nmls_layout_impl
         std::string magnet_lines{""};
         // size_t      idx{0};
         size_t magnets_qnt{0};
-        LOG(fmt::format("\n WRITE MAGNETS SECTION \n"));
+        // LOG(fmt::format("\n WRITE MAGNETS SECTION \n"));
         // This function replaces entire cells, it is necessary to iterate over each magnet
         // and calculate its position
         for (decltype(lyt.y()) y_pos = 0; y_pos <= lyt.y(); ++y_pos)
@@ -477,7 +477,7 @@ class write_nmls_layout_impl
                 }
             }
         }
-        LOG(fmt::format("\n magnets_qnt {}", magnets_qnt));
+        LOG(fmt::format("\n MAGNETS QNT {}", magnets_qnt));
         // lyt.foreach_cell([this, &magnet_lines, &idx](const auto& cell)
         //                  { magnet_lines += get_cell_specs_str(cell, idx) + "\n"; });
         // LOG(fmt::format("\n idx {}", idx));
