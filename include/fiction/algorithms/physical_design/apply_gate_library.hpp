@@ -637,16 +637,19 @@ class apply_gate_library_impl
                 {
                     std::pair<int64_t, int64_t> current_magnet = clk_zn_seq.at(j);
                     fmt::print("\n\t\t\t\t CURRENT MAGNET: {}", current_magnet);
-                    std::pair<int64_t, int64_t> next_magnet;
-                    int                         idx, next_magnet_clk_zn, current_magnet_clk_zn;
+                    std::pair<int64_t, int64_t> next_magnet = clk_zn_seq.at(j + 1);
+                    int                         idx, current_magnet_clk_zn;
+                    int  next_magnet_clk_zn = gate_clk_sch[next_magnet.second][next_magnet.first];
+                    auto clk_zn_delta       = next_magnet_clk_zn - i_clk_zn;
+                    auto min_magnets        = min_magnet_qntt(i_clk_zn, next_magnet_clk_zn);
+                    int  magnets_delta      = clk_zn_seq.size() - visited_magnets.size();
+                    magnets_delta           = std::max(magnets_delta, 0);
                     visited_magnets.push_back(std::make_pair(current_magnet.first, current_magnet.second));
-                    auto min_magnets   = min_magnet_qntt(i_clk_zn, o_clk_zn);
-                    auto magnets_delta = visited_magnets.size() == clk_zn_seq.size() ? 0 : (j - 1);
 
                     fmt::print("\n\t\t\t\t\t MIN MAGNETS: {} - MAGNETS DELTA: {} \n", min_magnets, magnets_delta);
 
                     // Loop from the beginning when finding the shortest path to update the clock zones sequence
-                    if (magnets_delta != 0 && min_magnets != 0 && magnets_delta >= min_magnets)
+                    if (magnets_delta > 1 && min_magnets != 0 && magnets_delta >= min_magnets)
                     {
                         fmt::print("\n\t\t\t\t\t LOOP --");
                         // Start a new loop from the inp clk zone incrementing each magnet clock zone
@@ -667,67 +670,85 @@ class apply_gate_library_impl
                             gate_clk_sch[current_magnet.second][current_magnet.first] = i_clk_zn;
                             current_magnet_clk_zn                                     = i_clk_zn;
 
-                            // if ((std::find(visited_magnets.begin(), visited_magnets.end(),
-                            //                std::make_pair(next_magnet.first, next_magnet.second)) !=
-                            //      visited_magnets.end()) &&
-                            //     i_clk_zn > next_magnet_clk_zn)
-                            // {
-                            //     gate_clk_sch[current_magnet.second][current_magnet.first] = next_magnet_clk_zn;
-                            //     current_magnet_clk_zn                                     = next_magnet_clk_zn;
-                            // }
-                            // else
-                            // {
-                            //     if (clk_zn_differences[k - 1] == 1)
-                            //     {
-                            //         i_clk_zn = (i_clk_zn + 1) % CLOCK_ZONES_QNTT;
-                            //         fmt::print("\n\t\t\t\t\t\t CLK ZN: {}", i_clk_zn);
-                            //         gate_clk_sch[current_magnet.second][current_magnet.first] = i_clk_zn;
-                            //         current_magnet_clk_zn                                     = i_clk_zn;
-                            //     }
-                            //     else
-                            //     {
-                            //         gate_clk_sch[current_magnet.second][current_magnet.first] = i_clk_zn;
-                            //         current_magnet_clk_zn                                     = i_clk_zn;
-                            //     }
-                            // }
-
                             idx = k;
                             fmt::print("\n\t\t\t\t\t\t GATE CLK SCH [{}][{}]: {}", current_magnet.second,
                                        current_magnet.first, gate_clk_sch[current_magnet.second][current_magnet.first]);
                         }
+                    }
+                    else if (magnets_delta == 1 && (clk_zn_delta == 0 || clk_zn_delta == 1))
+                    {
+                        gate_clk_sch[current_magnet.second][current_magnet.first] = next_magnet_clk_zn;
                     }
                     else
                     {
                         fmt::print("\n\t\t\t\t\t\t NO LOOP --");
                         if (min_magnets > magnets_delta)
                         {
-                            fmt::print("\n\t\t\t\t\t\t MIN MAGNETS: {} > MAGNETS DELTA: {}", min_magnets,
-                                       magnets_delta);
-                            for (int j{1}; j <= min_magnets; ++j)
+                            for (int j{1}; j < clk_zn_seq.size(); ++j)
                             {
-                                current_magnet         = clk_zn_seq.at(j);
-                                current_magnet_clk_zn  = gate_clk_sch[current_magnet.second][current_magnet.first];
+                                auto crr_magnet        = clk_zn_seq.at(j);
                                 auto prv_magnet        = clk_zn_seq.at(j - 1);
                                 auto prv_magnet_clk_zn = gate_clk_sch[prv_magnet.second][prv_magnet.first];
-                                auto nxt_magnet        = clk_zn_seq.at(j + 1);
-                                auto nxt_magnet_clk_zn = gate_clk_sch[nxt_magnet.second][nxt_magnet.first];
-
-                                if ((current_magnet_clk_zn == nxt_magnet_clk_zn &&
-                                     current_magnet_clk_zn == (prv_magnet_clk_zn + 1)) ||
-                                    (current_magnet_clk_zn == prv_magnet_clk_zn &&
-                                     current_magnet_clk_zn == (nxt_magnet_clk_zn - 1)))
+                                if (clk_zn_differences[j] == 1)
                                 {
-                                    break;
+                                    gate_clk_sch[crr_magnet.second][crr_magnet.first] =
+                                        (prv_magnet_clk_zn + 1) % CLOCK_ZONES_QNTT;
                                 }
                                 else
                                 {
-                                    gate_clk_sch[current_magnet.second][current_magnet.first] =
-                                        (prv_magnet_clk_zn + 1) % CLOCK_ZONES_QNTT;
+                                    gate_clk_sch[crr_magnet.second][crr_magnet.first] = prv_magnet_clk_zn;
                                 }
                             }
                         }
                         current_magnet = clk_zn_seq.at(j - 1);
                         o_clk_zn       = gate_clk_sch[current_magnet.second][current_magnet.first];
+                    }
+                }
+
+                // Check big clock zones after update
+                auto zero_counter = 0;
+                for (size_t i{1}; i < clk_zn_seq.size(); ++i)
+                {
+                    if (zero_counter >= (CLOCK_ZONES_QNTT - 1))
+                    {
+                        fmt::print("\n\t\t\t\t\t BIG CLK ZONE FOUND");
+                        break;
+                    }
+                    auto curr_magnet = clk_zn_seq.at(i);
+                    auto prv_magnet  = clk_zn_seq.at(i - 1);
+                    fmt::print("\n\t\t\t\t\t CURRENT MAGNET: {} - PREV MAGNET: {}", curr_magnet, prv_magnet);
+
+                    auto curr = gate_clk_sch[clk_zn_seq.at(i).second][clk_zn_seq.at(i).first];
+                    auto prev = gate_clk_sch[clk_zn_seq.at(i - 1).second][clk_zn_seq.at(i - 1).first];
+                    auto diff = curr - prev;
+                    fmt::print("\n\t\t\t\t\t\t DIFF: {}", diff);
+
+                    if (diff == 0)
+                        ++zero_counter;
+                    else
+                        zero_counter = 0;
+                }
+                fmt::print("\n\t\t\t\t\t ZERO COUNTER: {}", zero_counter);
+
+                // Update the entire path if it finds big clock zone
+                if (zero_counter >= (CLOCK_ZONES_QNTT - 1))
+                {
+                    fmt::print("\n\t\t\t\t\t UPDATE ENTIRE PATH");
+                    // Start a new loop from the inp clk zone incrementing each magnet clock zone
+                    for (int j{1}; j < clk_zn_seq.size(); ++j)
+                    {
+                        auto crr_magnet        = clk_zn_seq.at(j);
+                        auto prv_magnet        = clk_zn_seq.at(j - 1);
+                        auto prv_magnet_clk_zn = gate_clk_sch[prv_magnet.second][prv_magnet.first];
+                        if (clk_zn_differences[j] == 1)
+                        {
+                            gate_clk_sch[crr_magnet.second][crr_magnet.first] =
+                                (prv_magnet_clk_zn + 1) % CLOCK_ZONES_QNTT;
+                        }
+                        else
+                        {
+                            gate_clk_sch[crr_magnet.second][crr_magnet.first] = prv_magnet_clk_zn;
+                        }
                     }
                 }
             }
