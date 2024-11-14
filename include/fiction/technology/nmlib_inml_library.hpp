@@ -197,13 +197,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
                     auto wire            = WIRE_MAP.at(p);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    // auto wire_print      = fmt::format("\nWIRE: {} - INP: {} - OUT: {}", wire, p.inp, p.out);
                     // std::cout << wire_print << std::endl;
 
                     if (lyt.is_pi(n))
                     {
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
-                        wire = mark_cell(wire, inp_mark_pos, nmlib_inml_technology::cell_mark::INPUT);
+                        wire = mark_cell(WIRE_MAP.at({{port_position(0, 2)}, {}}), inp_mark_pos, nmlib_inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
                     {
@@ -1214,6 +1213,24 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1},
     }})};
 
+    static constexpr const fcn_gate OUTPUT_MIDDLER_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {'N', 'n', 'n', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch OUTPUT_MIDDLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 0,  0,  0, -1, -1},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+    }})};
+
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
         {'N', ' ', ' ', ' ', ' '},
@@ -1413,6 +1430,29 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {0, -1, -1, -1, -1}
     }})};
 
+
+    // ************************************************************
+    // ************************** Wires ***************************
+    // ************************************************************
+  
+    static constexpr const fcn_gate FLIP_FLOP{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '},
+        {'N', '6', 'n', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' '}
+    }})};
+
+    static constexpr const fcn_clk_sch COUPLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1},
+        { 5, 5, 5, 6, 6},
+        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1}
+    }})};
+
     // clang-format on
 
     using port_gate_map    = phmap::flat_hash_map<port_list<port_position>, fcn_gate>;
@@ -1451,7 +1491,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{}, {port_position(4, 2)}}, MIDDLER_WIRE},
         {{{port_position(0, 2)}, {}}, MIDDLER_WIRE},
         {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
-        {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
+        // {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
+        {{{}, {port_position(4, 0)}}, OUTPUT_MIDDLER_WIRE},
         {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE)},
         // bent wires
         {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE},
@@ -1479,6 +1520,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 0)}, {}}, INPUT_MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 0)}, {port_position(3, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         {{{}, {port_position(3, 3)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{}, {port_position(4, 0)}}, OUTPUT_MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         // bent wires
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},

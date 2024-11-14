@@ -126,7 +126,9 @@ inline constexpr const char* PHASES_SECTION =
 //
 inline constexpr const char* ZONES_SECTION =
     "Zones\n0;reset;relax;switch;hold;-16777216\n1;hold;reset;relax;switch;-30208\n2;switch;hold;reset;relax;-"
-    "14757932\n3;relax;switch;hold;reset;-11206444\n4;relax;switch;relax;switch;-11522794";
+    "14757932\n3;relax;switch;hold;reset;-11206444\n4;relax;switch;relax;switch;-11522794"
+    "\n5;hold;hold;hold;switch;-11552794\n6;switch;hold;hold;hold;-11552794\n7;hold;switch;hold;hold;-11552794"
+    "\n8;hold;hold;switch;hold;-11552794";
 // }}}
 
 inline constexpr const char* MAGNETS_SECTION_HEADER = "Magnets\n{}";
