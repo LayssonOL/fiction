@@ -224,30 +224,21 @@ class apply_gate_library_impl
         auto g       = gclk.first;
         auto clk     = gclk.second;
 
-        // std::cout << " ################# ASSIGN GATE BEGIN #################" << std::endl;
+        fmt::print("\n_________________ ASSIGN GATE _________________\n");
+        fmt::print("Tile: {} \n", tile);
+        fmt::print("Cell: {} - Gate Clock Scheme: {}\n", c, clk);
         bool is_gate = this->gate_lyt.is_gate(n) && !this->gate_lyt.is_wire(n);
 
         const auto tile_portlist = tile_gate_cell_layout_map.at(tile).first;
-
-        fmt::print("\n NODE: {}", n);
-        fmt::print("\n IS GATE: {}", is_gate);
-        fmt::print("\n PRED TILES: {}", pred_tiles);
-        fmt::print("\n TILE: {}", tile);
-        fmt::print("\n TILE PORTS: {}", tile_portlist);
-        fmt::print("\n TILE INPS: {}", tile_portlist.inp);
-        fmt::print("\n TILE OUTS: {}", tile_portlist.out);
 
         auto checked_clk_zone = assign_clock_zones(pred_tiles, tile, gclk, is_gate);
 
         ClockingZoneByPortMap updated_clock_zones;
 
-        // fmt::print("\n\t ## UPDATED TILE OUTS: {}\n", tile_portlist.out);
         for (auto out : tile_portlist.out)
         {
-            // fmt::print("\n\t OUT: {} - CLK ZONE: {} ", out, checked_clk_zone[out.y][out.x]);
             updated_clock_zones[out] = checked_clk_zone[out.y][out.x];
         }
-        fmt::print("\n");
 
         this->node_outputs_clocking_zones_map[n] = updated_clock_zones;
 
@@ -272,20 +263,15 @@ class apply_gate_library_impl
                 }
             }
         }
-        // std::cout << " ################# ASSIGN GATE END ################# \n" << std::endl;
     }
 
     GateLibrary::fcn_clk_sch assign_clock_zones(const std::vector<tile<GateLyt>>& pred_tiles, const tile<GateLyt>& tile,
                                                 const typename GateLibrary::fcn_gate_clk_sch& gpair, bool is_gate)
     {
-        // fmt::print("\n\t =============== ASSIGN CLOCK ZONES BEGIN =============== \n");
 
         auto cell = gpair.first;
         auto gclk = gpair.second;
-        // fmt::print("\n\t CELL: {}", cell);
-        fmt::print("\n\t GCLK: {}", gclk);
-        // fmt::print("\n\t PRED TILES: {}", pred_tiles);
-        // fmt::print("\n\t TILE: {}", tile);
+        fmt::print("_________________ ASSIGN CLOCK ZONES _________________\n");
 
         // If the predecessor tile is an empty tile
         // returns the predefined clock scheme
@@ -307,12 +293,10 @@ class apply_gate_library_impl
 
         // Tile output ports list
         std::vector<port_position> tile_outs(tile_portlist.out.begin(), tile_portlist.out.end());
+        fmt::print("Tile ports: {} \n", tile_portlist);
 
         // Biggest clock zone index of the predecessor tile
         auto pred_biggest_clk_number{-1};
-
-        // fmt::print("\n\t TILE INP PORTS: {}", tile_inps);
-        // fmt::print("\n\t TILE OUT PORTS: {}", tile_outs);
 
         // Clock zones of the tile input ports
         std::vector<int> tile_inps_clk_zone(tile_inps.size(), 0);
@@ -358,21 +342,14 @@ class apply_gate_library_impl
                                               &tile_inp_feeders_clk_zone_map, &tile,
                                               &gclk](auto tilePort, std::vector<port_position> tile_inp_feeders) -> void
         {
-            // fmt::print("\n\t ====== GET TILE INP FEEDERS CLK ZONE BEGIN ======= \n");
-            // fmt::print("\n\t ======== SEARCH CLK ZN FOR TILE PORT: {}", tilePort);
-
             // Predecessor node
             auto     predPair  = get_pred_node_by_port(tile, tilePort);
             auto     predNode  = predPair.first;
             uint16_t predTileY = predPair.second.first;
             uint16_t predTileX = predPair.second.second;
 
-            // fmt::print("\n\t === PRED NODE: {} - COORD: ({}, {})", predNode, predTileY, predTileX);
-
             if (predNode == 0 || predNode == -1)
             {
-                // fmt::print("\n\t === PRED NODE DOESN'T EXIST");
-                // fmt::print("\n\t === THIS IS AN INPUT TILE");
                 tile_inp_feeders_clk_zone.push_back(0);
                 tile_inp_feeders_clk_zone_map[tile_inp_feeders[0]] = 0;
                 return;
@@ -380,16 +357,12 @@ class apply_gate_library_impl
 
             if (this->node_outputs_clocking_zones_map.find(predNode) == this->node_outputs_clocking_zones_map.end())
             {
-                // fmt::print("\n\t === OUTPUTS CLOCKING ZONES DOESN'T CONTAIN PRED NODE");
                 tile_inp_feeders_clk_zone.push_back(0);
                 tile_inp_feeders_clk_zone_map[tile_inp_feeders[0]] = 0;
                 return;
             }
 
-            // fmt::print("\n\t === PRED NODE EXISTS: {} - COORD: ({}, {})", predNode, predTileY, predTileX);
             auto predNodeOutputsClockingZones = this->node_outputs_clocking_zones_map.at(predNode);
-            // fmt::print("\n\t === PRED NODE OUTPUTS CLOCKING ZONES: {}", predNodeOutputsClockingZones);
-            // fmt::print("\n\t === PRED NODE CLOCKING ZONES: {}", gclk[predTileY][predTileX]);
 
             for (auto feeder_port : tile_inp_feeders)
             {
@@ -400,7 +373,6 @@ class apply_gate_library_impl
                     tile_inp_feeders_clk_zone_map[feeder_port] = feeder_port_clk_zn;
                 }
             }
-            // fmt::print("\n\t ====== GET TILE INP FEEDERS CLK ZONE END ======= \n");
         };
 
         // Get tile input ports clock zones
@@ -408,13 +380,6 @@ class apply_gate_library_impl
                                        &tile_outs, &tile, &pred_tiles, &cell,
                                        &gate_clk_sch](auto tile_inp_feeders) -> std::map<port_position, int>
         {
-            // std::cout << "\n\t ============ GET TILE INPS CLK ZONES BEGIN ===============" << std::endl;
-            // fmt::print("\n\t\t TILE X: {} - Y: {}", tile.x, tile.y);
-            // fmt::print("\n\t\t TILE INPS: {}", tile_inps);
-            // fmt::print("\n\t\t TILE INP FEEDERS: {}", tile_inp_feeders);
-            // fmt::print("\n\t\t TILE INP FEEDERS CLK ZONES: {}\n", tile_inp_feeders_clk_zone);
-            // fmt::print("\n\t\t TILE INP FEEDERS CLK ZONES MAP: {}\n", tile_inp_feeders_clk_zone_map);
-
             // Inputs new clock zones
             std::map<port_position, int> new_inps_clk_zones;
 
@@ -452,8 +417,6 @@ class apply_gate_library_impl
                 {
                     auto hz_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{4, 2}];
                     auto vt_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{2, 4}];
-                    // fmt::print("\n\t\t HZ FEEDER CLK ZN: {}", hz_feeder_clk_zn);
-                    // fmt::print("\n\t\t VT FEEDER CLK ZN: {}", vt_feeder_clk_zn);
                     if ((hz_feeder_clk_zn == 1 || hz_feeder_clk_zn == 2) &&
                         (vt_feeder_clk_zn == 0 || vt_feeder_clk_zn == 3))
                     {
@@ -486,7 +449,6 @@ class apply_gate_library_impl
 
         auto min_magnet_qntt = [](int src_clk_zn, int dst_clk_zn) -> int
         {
-            fmt::print("\n\t\t\t\t\t SRC CLK ZN: {} | DST CLK ZN: {}", src_clk_zn, dst_clk_zn);
             int result_clk_zn   = src_clk_zn;
             int min_magnet_qntt = 0;
             int prv_dst_clk_zn  = dst_clk_zn - 1;
@@ -501,18 +463,6 @@ class apply_gate_library_impl
                 min_magnet_qntt = clk_delta - 1;
             }
 
-            // if (dst_clk_zn == 0)
-            // {
-            //     prv_dst_clk_zn = CLOCK_ZONES_QNTT - 1;
-            // }
-            //
-            // while (result_clk_zn != prv_dst_clk_zn)
-            // {
-            //     result_clk_zn = (result_clk_zn + 1) % CLOCK_ZONES_QNTT;
-            //     min_magnet_qntt++;
-            // }
-
-            fmt::print("\n\t\t\t\t\t MIN MAGNET QNTT: {} \n", min_magnet_qntt);
             return min_magnet_qntt;
         };
 
@@ -520,27 +470,18 @@ class apply_gate_library_impl
                                                  &get_tile_inps_clk_zone,
                                                  &min_magnet_qntt](auto tile_inp_feeders) -> void
         {
-            // std::cout << "\n\t ============ UPDATE TILE CLK SEQUENCE ===============" << std::endl;
-
+            fmt::print("_________________ UPDATE TILE CLK ZONES SEQUENCE _________________\n");
             auto tile_inp_clk_zones = get_tile_inps_clk_zone(tile_inp_feeders);
-            // fmt::print("\n\t\t TILE INPS: {}\n", tile_inps);
-            // fmt::print("\n\t\t TILE OUTS: {}\n", tile_outs);
-            // fmt::print("\n\t\t TILE INP CLK ZONES: {}\n", tile_inp_clk_zones);
 
             if (GateLibrary::is_crosswire(cell))
             {
-                // fmt::print("\n\t\t UPDATING CROSSWIRE CLK ZN SCHEME");
                 if (tile_inp_clk_zones[{0, 2}] == 2 && tile_inp_clk_zones[{2, 0}] == 0)
                 {
                     // set crosswire clk sch type II
                     gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(1);
-                    // fmt::print("\n\t\t UPDATED TILE CLK ZONES: {}", gate_clk_sch);
-                    // fmt::print("\n\t ============ UPDATE TILE CLK SEQUENCE =============== \n");
                     return;
                 }
                 gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(0);
-                // fmt::print("\n\t\t UPDATED TILE CLK ZONES: {}", gate_clk_sch);
-                // fmt::print("\n\t ============ UPDATE TILE CLK SEQUENCE =============== \n");
                 return;
             }
 
@@ -550,25 +491,15 @@ class apply_gate_library_impl
                 update_clk_zn_seqs_map;
 
             // Routine to update gates clock zone sequences
-            // if (is_gate)
-            // {
-            // fmt::print("\n\t\t ******** UPDATING GATE CLOCK ZONE SEQUENCES\n");
             // TODO: Calculate paths from each input to each output
             for (size_t i{0}; i < tile_inps.size(); ++i)
             {
                 Coord<int64_t> src{std::make_pair(tile_inps.at(i).x, tile_inps.at(i).y)};
-                // std::cout << fmt::format("\n\t\t SEARCH PATH FROM {} ", src);
                 for (size_t j{0}; j < tile_outs.size(); ++j)
                 {
                     Coord<int64_t> dst{std::make_pair(tile_outs.at(j).x, tile_outs.at(j).y)};
-                    // std::cout << fmt::format(" TO {}", dst) << std::endl;
-                    auto clk_zn_sequence_to_update{this->path(src, dst, gate_clk_sch)};
 
-                    // if (clk_zn_sequence_to_update)
-                    // {
-                    // fmt::print("\n\t\t GATE: {} - Src: {} - Dst: {} - A*: {}\n", tile, tile_inps.at(i),
-                    //            tile_outs.at(j), *clk_zn_sequence_to_update);
-                    // }
+                    auto clk_zn_sequence_to_update{this->path(src, dst, gate_clk_sch)};
 
                     clk_zone_sequence_to_update.insert(clk_zone_sequence_to_update.end(),
                                                        (*clk_zn_sequence_to_update).begin(),
@@ -582,20 +513,16 @@ class apply_gate_library_impl
                 }
             }
 
-            fmt::print("\n\t\t CLK ZONE SEQUENCE TO UPDATE: {}", clk_zone_sequence_to_update);
-            fmt::print("\n\t\t CLK ZONE SEQUENCE MAP: {}", update_clk_zn_seqs_map);
-
             for (auto [pair, clk_zn_seq] : update_clk_zn_seqs_map)
             {
                 if (clk_zn_seq.empty() || clk_zn_seq.size() == 1)
                 {
                     continue;
                 }
+                fmt::print("clk_zn_seq: {}\n", clk_zn_seq);
 
                 auto inp = pair.first;
                 auto out = pair.second;
-
-                fmt::print("\n\t\t\tINP: {} - OUT: {} - CLK ZONE SEQUENCE: {}", inp, out, clk_zn_seq);
 
                 // Clock zone delta between adjacent magnets whithin a tile
                 std::vector<int> clk_zn_differences;
@@ -607,83 +534,84 @@ class apply_gate_library_impl
                     clk_zn_differences.push_back(curr - prev);
                 }
 
-                fmt::print("\n\t\t\t CLK ZONE DIFFERENCES: {}", clk_zn_differences);
-
                 auto inp_clk_zone = tile_inp_clk_zones.at(inp);
-                fmt::print("\n\t\t\t\t INP: {} - CLK ZONE: {}", inp, inp_clk_zone);
                 auto out_clk_zone = gate_clk_sch[out.y][out.x];
-                fmt::print("\n\t\t\t\t OUT: {} - CLK ZONE: {}", out, out_clk_zone);
 
                 if (inp_clk_zone == gate_clk_sch[inp.y][inp.x])
                 {
+                    // The input magnet is already in the correct clock zone
+                    fmt::print("The input magnet is already in the correct clock zone\n");
                     continue;
                 }
 
-                // Calculate the minimum quantity of mangets to update
-                // auto min_magnets = min_magnet_qntt(inp_clk_zone, out_clk_zone);
-                // fmt::print("\n\t\t\t\t MAGNETS TO UPDATE: {}", magnets_to_update);
-
                 // Update the input magnet clock zone
                 gate_clk_sch[inp.y][inp.x] = inp_clk_zone % CLOCK_ZONES_QNTT;
-                fmt::print("\n\t\t\t\t GATE CLK SCH [{}][{}]: {}", inp.y, inp.x, gate_clk_sch[inp.y][inp.x]);
 
                 auto                                       i_clk_zn = inp_clk_zone;
                 auto                                       o_clk_zn = out_clk_zone;
                 std::vector<std::pair<long int, long int>> visited_magnets{std::make_pair(inp.x, inp.y),
                                                                            std::make_pair(out.x, out.y)};
+                fmt::print("inp: {} - clk zn: {}\nout: {} - clk zn: {}\n", inp, i_clk_zn, out, o_clk_zn);
 
                 // TODO: ITerate over path to update magnets clock zones
                 for (size_t j{clk_zn_seq.size() - 2}; j > 0; --j)
                 {
                     std::pair<int64_t, int64_t> current_magnet = clk_zn_seq.at(j);
-                    fmt::print("\n\t\t\t\t CURRENT MAGNET: {}", current_magnet);
-                    std::pair<int64_t, int64_t> next_magnet = clk_zn_seq.at(j + 1);
+                    std::pair<int64_t, int64_t> next_magnet    = clk_zn_seq.at(j + 1);
                     int                         idx, current_magnet_clk_zn;
                     int  next_magnet_clk_zn = gate_clk_sch[next_magnet.second][next_magnet.first];
                     auto clk_zn_delta       = next_magnet_clk_zn - i_clk_zn;
                     auto min_magnets        = min_magnet_qntt(i_clk_zn, next_magnet_clk_zn);
                     int  magnets_delta      = clk_zn_seq.size() - visited_magnets.size();
                     magnets_delta           = std::max(magnets_delta, 0);
-                    visited_magnets.push_back(std::make_pair(current_magnet.first, current_magnet.second));
-
-                    fmt::print("\n\t\t\t\t\t MIN MAGNETS: {} - MAGNETS DELTA: {} \n", min_magnets, magnets_delta);
+                    fmt::print("\n\t min_magnets: {}\n", min_magnets);
+                    fmt::print("\t magnets delta: {}\n", magnets_delta);
+                    fmt::print("\t clk zn delta: {}\n", clk_zn_delta);
+                    fmt::print("\t current magnet: {}\n", current_magnet);
+                    fmt::print("\t visited magnets: {}\n", visited_magnets);
 
                     // Loop from the beginning when finding the shortest path to update the clock zones sequence
                     if (magnets_delta > 1 && min_magnets != 0 && magnets_delta >= min_magnets)
                     {
-                        fmt::print("\n\t\t\t\t\t LOOP --");
+                        fmt::print("\n\t magnets delta > 1 and min_magnets != 0 and magnets_delta >= min_magnets\n");
                         // Start a new loop from the inp clk zone incrementing each magnet clock zone
                         for (int k{1}; k <= magnets_delta; ++k)
                         {
                             current_magnet = clk_zn_seq.at(k);
-                            fmt::print("\n\t\t\t\t\t\t CURRENT MAGNET: {}", current_magnet);
+                            fmt::print("\t\t current_magnet: {}\n", current_magnet);
                             if (std::find(visited_magnets.begin(), visited_magnets.end(),
                                           std::make_pair(current_magnet.first, current_magnet.second)) !=
                                 visited_magnets.end())
                             {
-                                fmt::print("\n\t\t\t\t\t\t CURRENT MAGNET VISITED");
+                                fmt::print("\t\t magnet already visited\n");
                                 continue;
                             }
                             visited_magnets.push_back(std::make_pair(current_magnet.first, current_magnet.second));
                             i_clk_zn = (i_clk_zn + 1) % CLOCK_ZONES_QNTT;
-                            fmt::print("\n\t\t\t\t\t\t NEW CLK ZN: {}", i_clk_zn);
                             gate_clk_sch[current_magnet.second][current_magnet.first] = i_clk_zn;
                             current_magnet_clk_zn                                     = i_clk_zn;
+                            fmt::print("\t\t current_magnet clk zn: {}\n", current_magnet_clk_zn);
 
                             idx = k;
-                            fmt::print("\n\t\t\t\t\t\t GATE CLK SCH [{}][{}]: {}", current_magnet.second,
-                                       current_magnet.first, gate_clk_sch[current_magnet.second][current_magnet.first]);
                         }
                     }
                     else if (magnets_delta == 1 && (clk_zn_delta == 0 || clk_zn_delta == 1))
                     {
+                        fmt::print("\t magnets delta == 1 and clk_zn_delta == 0 or 1\n");
                         gate_clk_sch[current_magnet.second][current_magnet.first] = next_magnet_clk_zn;
+                        if (!(std::find(visited_magnets.begin(), visited_magnets.end(),
+                                        std::make_pair(current_magnet.first, current_magnet.second)) !=
+                              visited_magnets.end()))
+                        {
+                            fmt::print("\t\t {} magnet not visited\n", current_magnet);
+                            visited_magnets.push_back(std::make_pair(current_magnet.first, current_magnet.second));
+                        }
                     }
                     else
                     {
-                        fmt::print("\n\t\t\t\t\t\t NO LOOP --");
                         if (min_magnets > magnets_delta)
                         {
+                            fmt::print("\t last else - min_magnets > magnets_delta\n");
                             for (int j{1}; j < clk_zn_seq.size(); ++j)
                             {
                                 auto crr_magnet        = clk_zn_seq.at(j);
@@ -700,40 +628,43 @@ class apply_gate_library_impl
                                 }
                             }
                         }
+                        if (!(std::find(visited_magnets.begin(), visited_magnets.end(),
+                                        std::make_pair(current_magnet.first, current_magnet.second)) !=
+                              visited_magnets.end()))
+                        {
+                            fmt::print("\t\t {} magnet not visited\n", current_magnet);
+                            visited_magnets.push_back(std::make_pair(current_magnet.first, current_magnet.second));
+                        }
                         current_magnet = clk_zn_seq.at(j - 1);
                         o_clk_zn       = gate_clk_sch[current_magnet.second][current_magnet.first];
                     }
                 }
-
+                fmt::print("gate clk sch before big clock zones revision: {}\n", gate_clk_sch);
                 // Check big clock zones after update
                 auto zero_counter = 0;
                 for (size_t i{1}; i < clk_zn_seq.size(); ++i)
                 {
                     if (zero_counter >= (CLOCK_ZONES_QNTT - 1))
                     {
-                        fmt::print("\n\t\t\t\t\t BIG CLK ZONE FOUND");
                         break;
                     }
                     auto curr_magnet = clk_zn_seq.at(i);
                     auto prv_magnet  = clk_zn_seq.at(i - 1);
-                    fmt::print("\n\t\t\t\t\t CURRENT MAGNET: {} - PREV MAGNET: {}", curr_magnet, prv_magnet);
 
                     auto curr = gate_clk_sch[clk_zn_seq.at(i).second][clk_zn_seq.at(i).first];
                     auto prev = gate_clk_sch[clk_zn_seq.at(i - 1).second][clk_zn_seq.at(i - 1).first];
                     auto diff = curr - prev;
-                    fmt::print("\n\t\t\t\t\t\t DIFF: {}", diff);
 
                     if (diff == 0)
                         ++zero_counter;
                     else
                         zero_counter = 0;
                 }
-                fmt::print("\n\t\t\t\t\t ZERO COUNTER: {}", zero_counter);
 
                 // Update the entire path if it finds big clock zone
                 if (zero_counter >= (CLOCK_ZONES_QNTT - 1))
                 {
-                    fmt::print("\n\t\t\t\t\t UPDATE ENTIRE PATH");
+                    fmt::print("Big clock zone found\n");
                     // Start a new loop from the inp clk zone incrementing each magnet clock zone
                     for (int j{1}; j < clk_zn_seq.size(); ++j)
                     {
@@ -751,9 +682,8 @@ class apply_gate_library_impl
                         }
                     }
                 }
+                fmt::print("Gate Clock Scheme: {}\n", gate_clk_sch);
             }
-            fmt::print("\n\t\t UPDATED TILE CLK ZONES: {}", gate_clk_sch);
-            // fmt::print("\n\t ============ UPDATE TILE CLK SEQUENCE =============== \n");
         };
 
         // Loop to search the feeders of all input ports of current tile
@@ -772,7 +702,6 @@ class apply_gate_library_impl
 
         // Iterate over inputs and update their clock zones based on the tile_inp_feeders_clk_zone or their default
         // clock zone
-        // fmt::print("\n\t ============= ASSIGN CLOCK ZONES ==============  \n");
 
         return gate_clk_sch;
     }
