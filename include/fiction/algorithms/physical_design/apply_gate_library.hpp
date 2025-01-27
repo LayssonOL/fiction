@@ -43,8 +43,8 @@
 #pragma GCC diagnostic ignored "-Wuseless-cast"
 #pragma GCC diagnostic ignored "-Wconversion"
 
-const uint8_t TILE_HEIGHT      = 5;
-const uint8_t TILE_WIDTH       = 5;
+const uint8_t TILE_HEIGHT      = 13;
+const uint8_t TILE_WIDTH       = 13;
 const uint8_t CLOCK_ZONES_QNTT = 4;
 
 namespace fiction
@@ -318,7 +318,7 @@ class apply_gate_library_impl
                 tl   = std::make_pair(tile.x + 1, tile.y);
                 node = this->gate_lyt.get_node({tile.x + 1, tile.y});
             }
-            else if (oppositePort.x == 4)
+            else if (oppositePort.x == (TILE_HEIGHT - 1))
             {
                 tl   = std::make_pair(tile.x - 1, tile.y);
                 node = this->gate_lyt.get_node({tile.x - 1, tile.y});
@@ -328,7 +328,7 @@ class apply_gate_library_impl
                 tl   = std::make_pair(tile.x, tile.y + 1);
                 node = this->gate_lyt.get_node({tile.x, tile.y + 1});
             }
-            else if (oppositePort.y == 4)
+            else if (oppositePort.y == (TILE_WIDTH - 1))
             {
                 tl   = std::make_pair(tile.x, tile.y - 1);
                 node = this->gate_lyt.get_node({tile.x, tile.y - 1});
@@ -415,20 +415,20 @@ class apply_gate_library_impl
             {
                 if (GateLibrary::is_crosswire(cell))
                 {
-                    auto hz_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{4, 2}];
-                    auto vt_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{2, 4}];
+                    auto hz_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{(TILE_WIDTH - 1), ((TILE_HEIGHT - 1)/2)}];
+                    auto vt_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{((TILE_WIDTH - 1)/2), (TILE_HEIGHT - 1)}];
                     if ((hz_feeder_clk_zn == 1 || hz_feeder_clk_zn == 2) &&
                         (vt_feeder_clk_zn == 0 || vt_feeder_clk_zn == 3))
                     {
                         // set crosswire clk sch type II
-                        new_inps_clk_zones[{0, 2}] = 2;
-                        new_inps_clk_zones[{2, 0}] = 0;
+                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1)/2)}] = 2;
+                        new_inps_clk_zones[{((TILE_WIDTH - 1)/2), 0}] = 0;
                     }
                     else
                     {
                         // set crosswire clk sch type I
-                        new_inps_clk_zones[{0, 2}] = 0;
-                        new_inps_clk_zones[{2, 0}] = 2;
+                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1)/2)}] = 0;
+                        new_inps_clk_zones[{((TILE_WIDTH - 1)/2), 0}] = 2;
                     }
                 }
                 else
@@ -473,9 +473,11 @@ class apply_gate_library_impl
             fmt::print("_________________ UPDATE TILE CLK ZONES SEQUENCE _________________\n");
             auto tile_inp_clk_zones = get_tile_inps_clk_zone(tile_inp_feeders);
 
+            fmt::print("TIle INP CLK ZONES: \n {} \n", tile_inp_clk_zones);
             if (GateLibrary::is_crosswire(cell))
             {
-                if (tile_inp_clk_zones[{0, 2}] == 2 && tile_inp_clk_zones[{2, 0}] == 0)
+                fmt::print(" IS CROSSWIRE \n");
+                if (tile_inp_clk_zones[{0, (TILE_HEIGHT/2)}] == 2 && tile_inp_clk_zones[{(TILE_WIDTH/2), 0}] == 0)
                 {
                     // set crosswire clk sch type II
                     gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(1);
@@ -484,6 +486,8 @@ class apply_gate_library_impl
                 gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(0);
                 return;
             }
+            
+            fmt::print("Gate Clock Scheme: {}\n", gate_clk_sch);
 
             // std::vector<std::pair<int, int>> clk_zone_sequence_to_update;
             std::vector<std::pair<int, int>> clk_zone_sequence_to_update;
@@ -491,7 +495,6 @@ class apply_gate_library_impl
                 update_clk_zn_seqs_map;
 
             // Routine to update gates clock zone sequences
-            // TODO: Calculate paths from each input to each output
             for (size_t i{0}; i < tile_inps.size(); ++i)
             {
                 Coord<int64_t> src{std::make_pair(tile_inps.at(i).x, tile_inps.at(i).y)};
