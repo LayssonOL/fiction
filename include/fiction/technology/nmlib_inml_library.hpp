@@ -25,6 +25,11 @@
 
 const uint8_t NMLIB_TILE_HEIGHT = 13;
 const uint8_t NMLIB_TILE_WIDTH  = 13;
+const uint8_t TILE_MIDDLE_Y     = (NMLIB_TILE_HEIGHT - 1) / 2;
+const uint8_t TILE_MIDDLE_X     = (NMLIB_TILE_WIDTH - 1) / 2;
+const uint8_t TILE_LAST_Y     = NMLIB_TILE_HEIGHT - 1;
+const uint8_t TILE_LAST_X     = NMLIB_TILE_WIDTH - 1;
+
 // TODO: I need to update the tile dimensions to 13 x 13 to accomodate the flip-flop cell
 
 namespace fiction
@@ -93,17 +98,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (y == 0 || y == (NMLIB_TILE_WIDTH - 1))
                 {
-                  if (x == ((NMLIB_TILE_WIDTH - 1)/2)) {
+                  if (x == TILE_MIDDLE_X) {
                     if (pp_map.find(port_position(x, y)) == pp_map.end())
                     {
-                        pp_map[port_position(x, y)] = port_position(x, (NMLIB_TILE_WIDTH - 1) - y);
+                        pp_map[port_position(x, y)] = port_position(x, (TILE_LAST_Y - y));
                     }
                   }
                 }
 
-                if (x == 0 || x == (NMLIB_TILE_HEIGHT - 1))
+                if (x == 0 || x == TILE_LAST_X)
                 {
-                    pp_map[port_position(x, y)] = port_position((NMLIB_TILE_HEIGHT - 1) - x, y);
+                    pp_map[port_position(x, y)] = port_position(TILE_LAST_X - x, y);
                 }
             }
         }
@@ -135,17 +140,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 if (lyt.has_southern_outgoing_signal(t))
                 {
                     port_list<port_position> pl = {
-                        {port_position(0, ((NMLIB_TILE_WIDTH - 1) / 2)),
-                         port_position(((NMLIB_TILE_HEIGHT - 1) / 2), 0)
+                        {port_position(0, TILE_MIDDLE_Y),
+                         port_position(TILE_MIDDLE_X, 0)
                         },
-                        {port_position(((NMLIB_TILE_HEIGHT - 1) / 2), (NMLIB_TILE_WIDTH - 1))}};
+                        {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(CONJUNCTION), rotate_90(CONJUNCTION_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, ((NMLIB_TILE_WIDTH - 1) / 2)),
-                                                    port_position(((NMLIB_TILE_HEIGHT - 1) / 2), 0)},
-                                                   {port_position((NMLIB_TILE_HEIGHT - 1), ((NMLIB_TILE_WIDTH - 1) / 2))}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y),
+                                                    port_position(TILE_MIDDLE_X, 0)},
+                                                   {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t,
                             {},
                             pl,
@@ -160,12 +165,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // outputs
                 if (lyt.has_southern_outgoing_signal(t))
                 {
-                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(2, 4)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(DISJUNCTION), rotate_90(DISJUNCTION_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0)}, {port_position(4, 2)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t,
                             {},
                             pl,
@@ -179,14 +184,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (lyt.has_southern_outgoing_signal(t))
                 {
-                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(4, 2)},
-                                                   {port_position(2, 4)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0), port_position(TILE_LAST_X, TILE_MIDDLE_Y)},
+                                                   {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(MAJORITY), rotate_90(MAJORITY_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, 2), port_position(2, 0), port_position(2, 4)},
-                                                   {port_position(4, 2)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0), port_position(TILE_MIDDLE_X, TILE_LAST_Y)},
+                                                   {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t, {}, pl, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
                 }
             }
@@ -195,45 +200,52 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto pair      = determine_port_routing(lyt, t);
         auto       p         = pair.second;
         const auto pred_tile = pair.first;
-        // FMTPRINT(" ==> Pair first inp: ", p.inp);
-        // FMTPRINT(" ==> Pair first out: ", p.out);
-        // FMTPRINT(" ==> Pair second: ", pred_tile);
+        FMTPRINT("\n ==> Pair: ", p);
+        FMTPRINT(" ==> Pair first inp: ", p.inp);
+        FMTPRINT(" ==> Pair first out: ", p.out);
+        FMTPRINT(" ==> Pair second: ", pred_tile);
 
         try
         {
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
+                fmt::print("HAS INV V\n");
                 if (lyt.is_inv(n))
                 {
+                    fmt::print("LYT IS INV V\n");
                     return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
 
             if constexpr (fiction::has_is_buf_v<GateLyt>)
             {
+                fmt::print("HAS BUF V\n");
                 if (lyt.is_buf(n))
                 {
+                    fmt::print("LYT IS BUF\n");
                     const auto a        = lyt.above(t);
                     const auto is_equal = t != a;
 
                     // crossing case
                     if (const auto a = lyt.above(t); t != a && lyt.is_wire_tile(a))
                     {
-                        p.inp.emplace(2u, 0u);
-                        p.out.emplace(2u, 4u);
+                        p.inp.emplace(TILE_MIDDLE_X, 0u);
+                        p.out.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
                         // auto crosswire_print = fmt::format("\nCROSSWIRE: {} - INP: {} - OUT: {}", a, p.inp, p.out);
                         // std::cout << crosswire_print << std::endl;
                         return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
+                    fmt::print("-- BUF \n");
                     auto wire            = WIRE_MAP.at(p);
+                    fmt::print("Wire: {}\n", wire);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    // std::cout << wire_print << std::endl;
+                    fmt::print("Wire Clock Scheme Map: {}\n", wire);
 
                     if (lyt.is_pi(n))
                     {
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
-                        wire                    = mark_cell(WIRE_MAP.at({{port_position(0, 2)}, {}}), inp_mark_pos,
+                        wire                    = mark_cell(WIRE_MAP.at({{port_position(0, TILE_MIDDLE_Y)}, {}}), inp_mark_pos,
                                                             nmlib_inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
@@ -531,12 +543,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             if (lyt.has_northern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y - 1;
-                p.inp.emplace(2u, 0u);
+                p.inp.emplace(TILE_MIDDLE_X, 0u);
             }
             else if (lyt.has_southern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y + 1;
-                p.inp.emplace(2u, 4u);
+                p.inp.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             else if (lyt.has_south_western_incoming_signal(t))
             {
@@ -546,17 +558,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
-                    p.inp.emplace(0u, 4u);
+                    p.inp.emplace(0u, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
                 }
             }
             else
             {
                 pred_tile.x = pred_tile.x - 1;
-                p.inp.emplace(0u, 2u);
+                p.inp.emplace(0u, TILE_MIDDLE_Y);
             }
 
             // outputs
@@ -569,32 +581,32 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 }
                 else
                 {
-                    p.out.emplace(4u, 0u);
+                    p.out.emplace(TILE_LAST_X, 0u);
                 }
             }
             if (lyt.has_southern_outgoing_signal(t))
             {
-                p.out.emplace(2u, 4u);
+                p.out.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             if (lyt.has_north_eastern_outgoing_signal(t))
             {
-                p.out.emplace(4u, 0u);
+                p.out.emplace(TILE_LAST_X, 0u);
             }
             if (lyt.has_south_eastern_outgoing_signal(t))
             {
                 // special case: if successor is a fanout, output port is at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
-                    p.out.emplace(4u, 4u);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.out.emplace(4u, 2u);
+                    p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
             }
             if (lyt.has_eastern_outgoing_signal(t))
             {
-                p.out.emplace(4u, 2u);
+                p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
             }
         }
         // wires within the circuit
@@ -605,12 +617,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             if (lyt.has_northern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y - 1;
-                p.inp.emplace(2u, 0u);
+                p.inp.emplace(TILE_MIDDLE_X, 0u);
             }
             else if (lyt.has_southern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y + 1;
-                p.inp.emplace(2u, 4u);
+                p.inp.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             else if (lyt.has_south_western_incoming_signal(t))
             {
@@ -620,17 +632,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
-                    p.inp.emplace(0u, 4u);
+                    p.inp.emplace(0u, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
                 }
             }
             else
             {
                 pred_tile.x = pred_tile.x - 1;
-                p.inp.emplace(0u, 2u);
+                p.inp.emplace(0u, TILE_MIDDLE_Y);
             }
 
             // outputs
@@ -643,32 +655,32 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 }
                 else
                 {
-                    p.out.emplace(4u, 0u);
+                    p.out.emplace(TILE_LAST_X, 0u);
                 }
             }
             else if (lyt.has_southern_outgoing_signal(t))
             {
-                p.out.emplace(2u, 4u);
+                p.out.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             else if (lyt.has_north_eastern_outgoing_signal(t))
             {
-                p.out.emplace(4u, 0u);
+                p.out.emplace(TILE_LAST_X, 0u);
             }
             else if (lyt.has_south_eastern_outgoing_signal(t))
             {
                 // special case: if successor is a fanout, output port is at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
-                    p.out.emplace(4u, 4u);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.out.emplace(4u, 2u);
+                    p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
             }
             else
             {
-                p.out.emplace(4u, 2u);
+                p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
             }
         }
         else if (lyt.is_inv(n) && !lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
@@ -678,12 +690,12 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             if (lyt.has_northern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y - 1;
-                p.inp.emplace(2u, 0u);
+                p.inp.emplace(TILE_MIDDLE_X, 0u);
             }
             else if (lyt.has_southern_incoming_signal(t))
             {
                 pred_tile.y = pred_tile.y + 1;
-                p.inp.emplace(2u, 4u);
+                p.inp.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             else if (lyt.has_south_western_incoming_signal(t))
             {
@@ -693,17 +705,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // special case: if predecessor is AND, OR, MAJ, input port is at (0,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
-                    p.inp.emplace(0u, 4u);
+                    p.inp.emplace(0u, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
                 }
             }
             else
             {
                 pred_tile.x = pred_tile.x - 1;
-                p.inp.emplace(0u, 2u);
+                p.inp.emplace(0u, TILE_MIDDLE_Y);
             }
 
             // outputs
@@ -716,32 +728,32 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 }
                 else
                 {
-                    p.out.emplace(4u, 0u);
+                    p.out.emplace(TILE_LAST_X, 0u);
                 }
             }
             else if (lyt.has_southern_outgoing_signal(t))
             {
-                p.out.emplace(2u, 4u);
+                p.out.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
             }
             else if (lyt.has_north_eastern_outgoing_signal(t))
             {
-                p.out.emplace(4u, 0u);
+                p.out.emplace(TILE_LAST_X, 0u);
             }
             else if (lyt.has_south_eastern_outgoing_signal(t))
             {
                 // special case: if successor is a fanout, output port is at (3,3)
                 if (has_fanout_fanout(lyt, n))
                 {
-                    p.out.emplace(4u, 4u);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
                 else
                 {
-                    p.out.emplace(4u, 2u);
+                    p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
             }
             else
             {
-                p.out.emplace(4u, 2u);
+                p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
             }
         }
         else  // PI, PO, etc.
@@ -758,8 +770,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     if (lyt.has_south_western_incoming_signal(t))
                     {
                         pred_tile.x = pred_tile.x - 1;
-                        p.inp.emplace(0u, 2u);
-                        p.out.emplace(4u, 4u);
+                        p.inp.emplace(0u, TILE_MIDDLE_Y);
+                        p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
 
                         return std::make_pair(pred_tile, p);
                     }
@@ -767,8 +779,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     {
 
                         pred_tile.x = pred_tile.x - 1;
-                        p.inp.emplace(0u, 2u);
-                        p.out.emplace(4u, 4u);
+                        p.inp.emplace(0u, TILE_MIDDLE_Y);
+                        p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
 
                         return std::make_pair(pred_tile, p);
                     }
@@ -777,19 +789,19 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 else if (lyt.has_north_western_incoming_signal(t))
                 {
                     // LOG("HAS NORTH WESTERN INCOMING SIGNAL");
-                    p.out.emplace(4u, 0u);
+                    p.out.emplace(TILE_LAST_X, 0u);
                 }
                 // if input is south-western, output port is at (3,2)
                 else if (lyt.has_south_western_incoming_signal(t))
                 {
                     // LOG("HAS SOUTH WESTERN INCOMING SIGNAL");
-                    p.out.emplace(4u, 4u);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
                 else if (lyt.has_western_incoming_signal(t))
                 {
                     // LOG("HAS WESTERN INCOMING SIGNAL");
-                    p.inp.emplace(0u, 2u);
-                    p.out.emplace(4u, 4u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
             }
 
@@ -797,7 +809,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 // LOG("HAS NORTH WESTERN INCOMING SIGNAL");
                 pred_tile.y = pred_tile.y - 1;
-                p.inp.emplace(2u, 0u);
+                p.inp.emplace(TILE_MIDDLE_X, 0u);
             }
             if (lyt.has_south_western_incoming_signal(t))
             {
@@ -808,17 +820,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     // special case: if predecessor is AND, OR, MAJ, input port is at (2,4)
                     if (has_and_or_maj_fanin(lyt, n))
                     {
-                        p.inp.emplace(2u, 4u);
+                        p.inp.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
                     }
                     else
                     {
-                        p.inp.emplace(0u, 4u);
+                        p.inp.emplace(0u, TILE_LAST_Y);
                     }
                 }
                 else
                 {
                     pred_tile.x = pred_tile.x - 1;
-                    p.inp.emplace(0u, 2u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
                 }
             }
             // special case: PI determines input according to successor
@@ -837,24 +849,24 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 if (lyt.has_north_eastern_outgoing_signal(t))
                 {
                     pred_tile.y = pred_tile.y + 1;
-                    p.inp.emplace(2u, 4u);
+                    p.inp.emplace(TILE_MIDDLE_X, TILE_LAST_Y);
                 }
                 else if (lyt.has_eastern_outgoing_signal(t))
                 {
                     pred_tile.x = pred_tile.x - 1;
-                    p.inp.emplace(0u, 2u);
-                    p.out.emplace(4u, 2u);
+                    p.inp.emplace(0u, TILE_MIDDLE_Y);
+                    p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
                 // if output is south-eastern, input port is at (0,2)
                 else if (lyt.has_south_eastern_outgoing_signal(t))
                 {
                     pred_tile.y = pred_tile.y - 1;
-                    p.inp.emplace(2u, 0u);
+                    p.inp.emplace(TILE_MIDDLE_X, 0u);
                 }
                 else if (lyt.has_southern_outgoing_signal(t))
                 {
                     pred_tile.y = pred_tile.y - 1;
-                    p.inp.emplace(2u, 0u);
+                    p.inp.emplace(TILE_MIDDLE_X, 0u);
                 }
             }
             // determine outgoing connector ports
@@ -1246,10 +1258,10 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         { 0, -1,  1,  1,  1,  2,  2,  3,  3,  0,  0,  1,  1},
         {-1,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
 
@@ -1344,8 +1356,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     static constexpr const fcn_clk_sch BOTTOM_LOWER_STRAIGHT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -1403,8 +1415,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         { 0,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -1447,16 +1459,16 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
     static constexpr const fcn_clk_sch TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1, -1, -1,  0,  0,  1,  1,  2,  2},
-        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        { 0,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3,  0,  0,  1,  1,  2,  2},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -1482,36 +1494,36 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
 
     static constexpr const fcn_gate BOTTOM_UP_BENT_INVERTER{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'N', 'n', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'n', 'N', 'n', 'N', 'n'},
         {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {'N', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1, -1, -1,  0,  0,  1,  1,  2,  2},
-        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        { 0,  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3,  0,  0,  1,  1,  2,  2},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
     }})};
 
     // static constexpr const fcn_gate BOTTOM_LOWER_UP_BENT_INVERTER{cell_list_to_gate<char>(
@@ -1559,8 +1571,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
@@ -1615,8 +1627,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
         { 2,  3,  3,  0,  0,  0,  4,  1,  2,  2,  3,  3,  3},
         {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  3, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
@@ -1641,8 +1653,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         { 0,  1,  1,  2,  2,  2,  4,  3,  0,  0,  1,  1,  1},
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
@@ -1684,7 +1696,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
-    static constexpr const fcn_clk_sch BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    static constexpr const fcn_clk_sch COUPLER_FANOUT_TOP_BOTTOM_RIGHT_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
         {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
@@ -1694,29 +1706,63 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  2,  3,  0,  1,  1,  2,  2},
         {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1,  1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
         {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
     }})};
 
+    // static constexpr const fcn_gate COUPLER_FANOUT_LEFT_BOTTOM_RIGHT{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {'N', 'n', 'N', '6', 'n'},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'n', ' ', ' '},
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     { 0, 0, 1, 2, 3},
+    //     {-1, -1, 2, -1, -1},
+    //     {-1, -1, 3, -1, -1},
+    // }})};
+
     static constexpr const fcn_gate COUPLER_FANOUT_LEFT_BOTTOM_RIGHT{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {'N', 'n', 'N', '6', 'n'},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'n', 'N', 'n', 'N', '6', 'n', 'N', 'n', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        { 0, 0, 1, 2, 3},
-        {-1, -1, 2, -1, -1},
-        {-1, -1, 3, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 3,  0,  0,  0,  1,  1,  2,  3,  0,  1,  1,  2,  2},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
     }})};
 
     // static constexpr const fcn_gate LOWER_WIRE{cell_list_to_gate<char>(
@@ -1875,226 +1921,632 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
 
+    // static constexpr const fcn_gate OUTPUT_MIDDLER_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {'N', 'n', 'n', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch OUTPUT_MIDDLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     { 0,  0,  0, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    // }})};
+
     static constexpr const fcn_gate OUTPUT_MIDDLER_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {'N', 'n', 'n', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'l', 'N', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch OUTPUT_MIDDLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        { 0,  0,  0, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  1,  1,  1,  2,  2,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {'N', ' ', ' ', ' ', ' '},
+    //     {'n', ' ', ' ', ' ', ' '},
+    //     {'N', '6', 'n', '7', 'N'},
+    //     {' ', ' ', ' ', ' ', 'n'},
+    //     {' ', ' ', ' ', ' ', 'N'},
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch TOP_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {0, -1, -1, -1, -1},
+    //     {0, -1, -1, -1, -1},
+    //     {1,  2,  2,  3,  0},
+    //     {-1, -1, -1, -1, 1},
+    //     {-1, -1, -1, -1, 2},
+    // }})};
 
     static constexpr const fcn_gate TOP_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {'N', ' ', ' ', ' ', ' '},
-        {'n', ' ', ' ', ' ', ' '},
-        {'N', '6', 'n', '7', 'N'},
-        {' ', ' ', ' ', ' ', 'n'},
-        {' ', ' ', ' ', ' ', 'N'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'l', 'N', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch TOP_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {0, -1, -1, -1, -1},
-        {0, -1, -1, -1, -1},
-        {1,  2,  2,  3,  0},
-        {-1, -1, -1, -1, 1},
-        {-1, -1, -1, -1, 2},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  1,  1,  1,  2,  2,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate TOP_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', 'N', ' ', ' '},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'N', '6', 'n'},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, 0, -1, -1},
+    //     {-1, -1, 0, -1, -1},
+    //     {-1, -1, 1, 2, 3},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    // }})};
 
     static constexpr const fcn_gate TOP_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'N', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', '6', 'n'},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'n', 'N', 'n', 'l', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, 0, -1, -1},
-        {-1, -1, 0, -1, -1},
-        {-1, -1, 1, 2, 3},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3,  0,  1,  2,  2,  2,  3},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate BOTTOM_UP_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', 'N'},
+    //     {' ', ' ', ' ', ' ', 'n'},
+    //     {'N', '6', 'n', '7', 'N'},
+    //     {'n', ' ', ' ', ' ', ' '},
+    //     {'N', ' ', ' ', ' ', ' '},
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, 1},
+    //     {-1, -1, -1, -1, 0},
+    //     { 1,  2,  2,  3, 0},
+    //     {0, -1, -1, -1, -1},
+    //     {0, -1, -1, -1, -1},
+    // }})};
 
     static constexpr const fcn_gate BOTTOM_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', 'N'},
-        {' ', ' ', ' ', ' ', 'n'},
-        {'N', '6', 'n', '7', 'N'},
-        {'n', ' ', ' ', ' ', ' '},
-        {'N', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n'},
+        {'N', '6', 'n', 'N', 'n', 'N', 'n', 'n', 'N', 'n', 'n', '7', 'N'},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, 1},
-        {-1, -1, -1, -1, 0},
-        { 1,  2,  2,  3, 0},
-        {0, -1, -1, -1, -1},
-        {0, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  3},
+        { 3,  0,  1,  2,  2,  3,  3,  3,  0,  0,  0,  1,  2},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate BOTTOM_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', 'N', 'c', 'n'},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'N', ' ', ' '}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch BOTTOM_RIGHT_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, 1, 2, 2},
+    //     {-1, -1, 0, -1, -1},
+    //     {-1, -1, 0, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate BOTTOM_RIGHT_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', 'N', 'c', 'n'},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'N', 'n', 'l', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch BOTTOM_RIGHT_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, 1, 2, 2},
-        {-1, -1, 0, -1, -1},
-        {-1, -1, 0, -1, -1}
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3,  0,  1,  1,  1,  2,  2},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate TOP_DOWN_STAIRCASE_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {'N', ' ', ' ', ' ', ' '},
+    //     {'n', ' ', ' ', ' ', ' '},
+    //     {'N', '6', 'N', ' ', ' '},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'N', '6', 'n'}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {0, -1, -1, -1, -1},
+    //     {0, -1, -1, -1, -1},
+    //     {1, 1, 2, -1, -1},
+    //     {-1, -1, 2, -1, -1},
+    //     {-1, -1, 3, 0, 0}
+    // }})};
 
     static constexpr const fcn_gate TOP_DOWN_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
-        {'N', ' ', ' ', ' ', ' '},
-        {'n', ' ', ' ', ' ', ' '},
-        {'N', '6', 'N', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', '6', 'n'}
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', 'n', 'n', 'N', 'n', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'N', 'n', 'l', 'N', 'n'},
     }})};
 
     static constexpr const fcn_clk_sch TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {0, -1, -1, -1, -1},
-        {0, -1, -1, -1, -1},
-        {1, 1, 2, -1, -1},
-        {-1, -1, 2, -1, -1},
-        {-1, -1, 3, 0, 0}
+        { 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 3,  0,  0,  1,  1,  1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2,  3,  0,  0,  0,  1,  1},
     }})};
+
+    // static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', 'N', '6', 'n'},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {'N', '6', 'N', ' ', ' '},
+    //     {'n', ' ', ' ', ' ', ' '},
+    //     {'N', ' ', ' ', ' ', ' '}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, 3, 0, 1},
+    //     {-1, -1, 2, -1, -1},
+    //     {1, 1, 2, -1, -1},
+    //     {0, -1, -1, -1, -1},
+    //     {0, -1, -1, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate BOTTOM_UP_STAIRCASE_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'N', '6', 'n'},
-        {' ', ' ', 'n', ' ', ' '},
-        {'N', '6', 'N', ' ', ' '},
-        {'n', ' ', ' ', ' ', ' '},
-        {'N', ' ', ' ', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n', 'N', 'n', 'l', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', 'n', 'n', 'N', 'n', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, 3, 0, 1},
-        {-1, -1, 2, -1, -1},
-        {1, 1, 2, -1, -1},
-        {0, -1, -1, -1, -1},
-        {0, -1, -1, -1, -1}
+        {-1, -1, -1, -1, -1, -1,  2,  3,  0,  0,  0,  1,  1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1},
+        { 3,  0,  0,  1,  1,  1,  2, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate BOTTOM_DOWN_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {'6', '7', 'N', ' ', ' '},
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'N', '6', 'n'}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {0, 0, 1, -1, -1},
+    //     {-1, -1, 2, -1, -1},
+    //     {-1, -1, 2, 3, 3}
+    // }})};
 
     static constexpr const fcn_gate BOTTOM_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {'6', '7', 'N', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', '6', 'n'}
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'N', 'n', '7', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', '6', 'n', 'N', 'n', 'N', 'n'},
     }})};
 
     static constexpr const fcn_clk_sch BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {0, 0, 1, -1, -1},
-        {-1, -1, 2, -1, -1},
-        {-1, -1, 2, 3, 3}
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  1,  1,  2,  2,  2,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  3,  0,  1,  2,  2,  3,  3},
     }})};
+
+    // static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {'n', '7', 'N', ' ', ' '},
+    //     {' ', ' ', 'N', ' ', ' '},
+    //     {' ', ' ', 'n', ' ', ' '}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {0, 0, 1, -1, -1},
+    //     {-1, -1, 2, -1, -1},
+    //     {-1, -1, 2, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate LEFT_DOWN_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {'n', '7', 'N', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' '},
-        {' ', ' ', 'n', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'N', 'n', '7', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {0, 0, 1, -1, -1},
-        {-1, -1, 2, -1, -1},
-        {-1, -1, 2, -1, -1}
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  1,  1,  2,  2,  2,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate LEFT_UP_BENT_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', 'n', ' ', ' '},
+    //     {' ', ' ', 'N', ' ', ' '},
+    //     {'n', '7', 'N', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '}
+    // }})};
+    // 
+    // static constexpr const fcn_clk_sch LEFT_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, 2, -1, -1},
+    //     {-1, -1, 1, -1, -1},
+    //     {0, 0, 1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate LEFT_UP_BENT_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', 'n', ' ', ' '},
-        {' ', ' ', 'N', ' ', ' '},
-        {'n', '7', 'N', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '}
-    }})};
-    
-    static constexpr const fcn_clk_sch LEFT_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
-    {{
-        {-1, -1, 2, -1, -1},
-        {-1, -1, 1, -1, -1},
-        {0, 0, 1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1}
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'N', 'n', 'N', 'n', '7', 'N', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
+    static constexpr const fcn_clk_sch LEFT_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1},
+        { 0,  1,  1,  2,  2,  2,  3, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    }})};
+
+    // static constexpr const fcn_gate MAJORITY_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {'n', 'n', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch MAJORITY_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {0, 0, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate MAJORITY_WIRE{cell_list_to_gate<char>(
     {{
-        {'n', 'n', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '}
+        {'n', 'N', 'n', 'N', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch MAJORITY_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {0, 0, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1}
+        { 0,  1,  1,  2,  2, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
+
+    // static constexpr const fcn_gate COUPLER_WIRE{cell_list_to_gate<char>(
+    // {{
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {' ', ' ', ' ', ' ', ' '},
+    //     {'N', '6', 'n', 'N', 'n'},
+    //     {'n', ' ', ' ', ' ', ' '},
+    //     {'N', ' ', ' ', ' ', ' '}
+    // }})};
+    //
+    // static constexpr const fcn_clk_sch COUPLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    // {{
+    //     {-1, -1, -1, -1, -1},
+    //     {-1, -1, -1, -1, -1},
+    //     {1, 2, 2, 3, 3},
+    //     {0, -1, -1, -1, -1},
+    //     {0, -1, -1, -1, -1}
+    // }})};
 
     static constexpr const fcn_gate COUPLER_WIRE{cell_list_to_gate<char>(
     {{
-        {' ', ' ', ' ', ' ', ' '},
-        {' ', ' ', ' ', ' ', ' '},
-        {'N', '6', 'n', 'N', 'n'},
-        {'n', ' ', ' ', ' ', ' '},
-        {'N', ' ', ' ', ' ', ' '}
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', 'n', 'n', 'N', 'n', 'l', 'N', 'n', 'l', 'N', 'n', 'l', 'n'},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     }})};
 
     static constexpr const fcn_clk_sch COUPLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     {{
-        {-1, -1, -1, -1, -1},
-        {-1, -1, -1, -1, -1},
-        {1, 2, 2, 3, 3},
-        {0, -1, -1, -1, -1},
-        {0, -1, -1, -1, -1}
+        { 0,  1,  1,  2,  2, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 3,  0,  1,  2,  2,  2,  3,  3,  3,  0,  0,  0,  1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
 
-
     // ************************************************************
-    // ************************** Wires ***************************
+    // *********************** Sequential *************************
     // ************************************************************
   
     static constexpr const fcn_gate FLIP_FLOP{cell_list_to_gate<char>(
@@ -2143,33 +2595,34 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 3)}, {port_position(3, 2)}}, COUPLER_WIRE},
         // NOTE more wires go here!
 
-        // NMLIB Tile of 5x5
+        // OLD: NMLIB Tile of 5x5
+        // NEW: NMLIB Tile of 13x13
         // straight wires
-        {{{port_position(0, 4)}, {port_position(4, 4)}}, LOWER_WIRE},
-        {{{}, {port_position(4, 4)}}, LOWER_WIRE},
-        {{{port_position(0, 4)}, {}}, LOWER_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_WIRE},
-        {{{port_position(2, 0)}, {port_position(2, 4)}}, rotate_90(MIDDLER_WIRE)},
-        {{{}, {port_position(4, 2)}}, MIDDLER_WIRE},
-        {{{port_position(0, 2)}, {}}, MIDDLER_WIRE},
-        {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
+        {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE},
+        {{{}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE},
+        {{{port_position(0, TILE_LAST_Y)}, {}}, LOWER_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, MIDDLER_WIRE},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, rotate_90(MIDDLER_WIRE)},
+        {{{}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {}}, MIDDLER_WIRE},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, 0)}}, rotate_180(LOWER_WIRE)},
         // {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE)},
-        {{{}, {port_position(4, 0)}}, OUTPUT_MIDDLER_WIRE},
+        {{{}, {port_position(TILE_LAST_X, 0)}}, OUTPUT_MIDDLER_WIRE},
         {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE)},
         // bent wires
-        {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE},
-        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 0)}}, BOTTOM_UP_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 4)}}, BOTTOM_DOWN_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(2, 4)}}, LEFT_DOWN_BENT_WIRE},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_DOWN_BENT_WIRE},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_BENT_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, LEFT_DOWN_BENT_WIRE},
         // staircase wires
-        {{{port_position(0, 0)}, {port_position(4, 4)}}, TOP_DOWN_STAIRCASE_WIRE},
-        {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, TOP_DOWN_STAIRCASE_WIRE},
+        {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_STAIRCASE_WIRE},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
-        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE},
-        {{{port_position(2, 0)}, {port_position(2, 4), port_position(4, 2)}}, COUPLER_FANOUT_TOP_BOTTOM_RIGHT},
-        {{{port_position(0, 2)}, {port_position(2, 4), port_position(4, 2)}}, COUPLER_FANOUT_LEFT_BOTTOM_RIGHT},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_WIRE},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_FANOUT_TOP_BOTTOM_RIGHT},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_FANOUT_LEFT_BOTTOM_RIGHT},
     };
 
     static inline const port_clk_sch_map WIRE_CLOCK_SCHEME_MAP = {
@@ -2196,33 +2649,34 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 3)}, {port_position(3, 2)}}, COUPLER_WIRE_CLOCK_SCHEME},
         // NOTE more wires go here!
 
-        // NMLIB Tile of 5x5
+        // NMLIB Tile of 5x5 FIX
+       // NEW: NMLIB Tile of 13x13
         // straight wires
-        {{{port_position(0, 4)}, {port_position(4, 4)}}, LOWER_WIRE_CLOCK_SCHEME},
-        {{{}, {port_position(4, 4)}}, LOWER_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 4)}, {}}, LOWER_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(2, 0)}, {port_position(2, 4)}}, rotate_90(MIDDLER_WIRE_CLOCK_SCHEME)},
-        {{{}, {port_position(4, 2)}}, MIDDLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 0)}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
-        {{{}, {port_position(4, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_LAST_Y)}, {}}, LOWER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, rotate_90(MIDDLER_WIRE_CLOCK_SCHEME)},
+        {{{}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
+        {{{}, {port_position(TILE_LAST_X, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         // bent wires
-        {{{port_position(0, 0)}, {port_position(4, 2)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(4, 0)}}, BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(4, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(2, 4)}}, LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME},
         // staircase wires
-        {{{port_position(0, 0)}, {port_position(4, 4)}}, TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 4)}, {port_position(4, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 3)}, {port_position(4, 2)}}, COUPLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(2, 0)}, {port_position(2, 4), port_position(4, 2)}},
+        {{{port_position(0, 3)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
          COUPLER_FANOUT_TOP_BOTTOM_RIGHT_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(2, 4), port_position(4, 2)}},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
          COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME},
     };
     /**
@@ -2242,11 +2696,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // bent inverters
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER},
-        {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE},
-        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER},
-        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
-        {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER},
-        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER}};
+        // {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE},
+        // {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER},
+        // {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE},
+        // {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER},
+        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER},
+
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_STRAIGHT_INVERTER},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, TOP_BOTTOM_STRAIGHT_INVERTER},
+    };
 
     static inline const port_clk_sch_map INVERTER_CLOCK_SCHEME_MAP = {
         // straight inverters
@@ -2262,11 +2722,17 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // bent inverters
         {{{port_position(0, 0)}, {port_position(3, 2)}}, TOP_DOWN_BENT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 2)}, {port_position(3, 0)}}, BOTTOM_UP_BENT_INVERTER_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
-        {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
-        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME}};
+        // {{{port_position(0, 2)}, {port_position(2, 4)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        // {{{port_position(0, 2)}, {port_position(4, 2)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        // {{{port_position(2, 0)}, {port_position(4, 2)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        // {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME},
+
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
+    };
 };
 }  // namespace fiction
 
