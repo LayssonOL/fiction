@@ -200,29 +200,29 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto pair      = determine_port_routing(lyt, t);
         auto       p         = pair.second;
         const auto pred_tile = pair.first;
-        FMTPRINT("\n ==> Pair: ", p);
-        FMTPRINT(" ==> Pair first inp: ", p.inp);
-        FMTPRINT(" ==> Pair first out: ", p.out);
-        FMTPRINT(" ==> Pair second: ", pred_tile);
+        // FMTPRINT("\n ==> Pair: ", p);
+        // FMTPRINT(" ==> Pair first inp: ", p.inp);
+        // FMTPRINT(" ==> Pair first out: ", p.out);
+        // FMTPRINT(" ==> Pair second: ", pred_tile);
 
         try
         {
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
-                fmt::print("HAS INV V\n");
+                // fmt::print("HAS INV V\n");
                 if (lyt.is_inv(n))
                 {
-                    fmt::print("LYT IS INV V\n");
+                    // fmt::print("LYT IS INV V\n");
                     return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
 
             if constexpr (fiction::has_is_buf_v<GateLyt>)
             {
-                fmt::print("HAS BUF V\n");
+                // fmt::print("HAS BUF V\n");
                 if (lyt.is_buf(n))
                 {
-                    fmt::print("LYT IS BUF\n");
+                    // fmt::print("LYT IS BUF\n");
                     const auto a        = lyt.above(t);
                     const auto is_equal = t != a;
 
@@ -236,11 +236,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                         return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
-                    fmt::print("-- BUF \n");
+                    // fmt::print("-- BUF \n");
                     auto wire            = WIRE_MAP.at(p);
-                    fmt::print("Wire: {}\n", wire);
+                    // fmt::print("Wire: {}\n", wire);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    fmt::print("Wire Clock Scheme Map: {}\n", wire);
+                    // fmt::print("Wire Clock Scheme Map: {}\n", wire);
 
                     if (lyt.is_pi(n))
                     {
@@ -761,7 +761,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
-                // LOG("IS PO");
+                LOG("IS PO");
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -2601,7 +2601,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE},
         {{{}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE},
         {{{port_position(0, TILE_LAST_Y)}, {}}, LOWER_WIRE},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, MIDDLER_WIRE},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE},
         {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, rotate_90(MIDDLER_WIRE)},
         {{{}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE},
         {{{port_position(0, TILE_MIDDLE_Y)}, {}}, MIDDLER_WIRE},
