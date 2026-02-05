@@ -25,10 +25,8 @@ const uint8_t NMLIB_TILE_HEIGHT = 13;
 const uint8_t NMLIB_TILE_WIDTH  = 13;
 const uint8_t TILE_MIDDLE_Y     = (NMLIB_TILE_HEIGHT - 1) / 2;
 const uint8_t TILE_MIDDLE_X     = (NMLIB_TILE_WIDTH - 1) / 2;
-const uint8_t TILE_LAST_Y     = NMLIB_TILE_HEIGHT - 1;
-const uint8_t TILE_LAST_X     = NMLIB_TILE_WIDTH - 1;
-
-// TODO: I need to update the tile dimensions to 13 x 13 to accomodate the flip-flop cell
+const uint8_t TILE_LAST_Y       = NMLIB_TILE_HEIGHT - 1;
+const uint8_t TILE_LAST_X       = NMLIB_TILE_WIDTH - 1;
 
 namespace fiction
 {
@@ -87,26 +85,27 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // {port_position(4, 3), port_position(0, 3)}, {port_position(4, 4), port_position(0, 4)},
             // {port_position(2, 0), port_position(2, 4)}, {port_position(2, 4), port_position(2, 0)}
         };
-
+        // (12,4)
         // Iterate on the columns
         for (size_t y{0}; y < NMLIB_TILE_WIDTH; ++y)
         {
             // Iterate on the lines
             for (size_t x{0}; x < NMLIB_TILE_HEIGHT; ++x)
             {
-                if (y == 0 || y == (NMLIB_TILE_WIDTH - 1))
+                if (y == 0 || y == TILE_LAST_Y)
                 {
-                  if (x == TILE_MIDDLE_X) {
                     if (pp_map.find(port_position(x, y)) == pp_map.end())
                     {
                         pp_map[port_position(x, y)] = port_position(x, (TILE_LAST_Y - y));
                     }
-                  }
                 }
 
                 if (x == 0 || x == TILE_LAST_X)
                 {
-                    pp_map[port_position(x, y)] = port_position(TILE_LAST_X - x, y);
+                    if (pp_map.find(port_position(x, y)) == pp_map.end())
+                    {
+                        pp_map[port_position(x, y)] = port_position(TILE_LAST_X - x, y);
+                    }
                 }
             }
         }
@@ -129,13 +128,55 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         }
 
         const auto n = lyt.get_node(t);
-        FMTPRINT("[set_up_gate] Node: ", n);
-        FMTPRINT("[set_up_gate] Function: ", lyt.node_function(n));
+        // FMTPRINT("\n[set_up_gate] Node: ", n);
+        // FMTPRINT("[set_up_gate] Function: ", lyt.node_function(n));
 
         if (lyt.is_synchronization_element(t))
         {
-            port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y + 1), port_position(0, TILE_MIDDLE_Y + 3)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y - 2)}};
-            return {t, {}, pl, std::make_pair(FLIP_FLOP, FLIP_FLOP_CLOCK_SCHEME)};
+            LOG("[set_up_gate] Synchronization element");
+            if (lyt.has_northern_incoming_signal(t))
+            {
+                LOG("[set_up_gate] Synchronization element with northern incoming signal");
+                // WARN: Verify the outgoing direction
+                if (lyt.has_eastern_outgoing_signal(t) || lyt.has_western_outgoing_signal(t))
+                {
+                    LOG("[set_up_gate] with eastern/western outgoing signal");
+                }
+                else if (lyt.has_southern_outgoing_signal(t))
+                {
+                    LOG("[set_up_gate] with southern outgoing signal");
+                    port_list<port_position> pl = {
+                        {port_position(TILE_MIDDLE_X + 1, 0), port_position(TILE_MIDDLE_X + 3, 0)},
+                        {port_position(TILE_MIDDLE_X + 1, TILE_LAST_Y)}};
+                    return {t, {}, pl, std::make_pair(rotate_90(FLIP_FLOP), rotate_90(FLIP_FLOP_CLOCK_SCHEME))};
+                }
+            }
+
+            if (lyt.has_southern_incoming_signal(t))
+            {
+                LOG("[set_up_gate] Synchronization element with northern incoming signal");
+                if (lyt.has_eastern_outgoing_signal(t) || lyt.has_western_outgoing_signal(t))
+                {
+                    LOG("[set_up_gate] with eastern/western outgoing signal");
+                }
+                else if (lyt.has_northern_outgoing_signal(t))
+                {
+                    // LOG("[set_up_gate] Synchronization element with southern incoming signal");
+                    port_list<port_position> pl = {
+                        {port_position(TILE_MIDDLE_X + 1, TILE_LAST_Y), port_position(TILE_MIDDLE_X + 3, TILE_LAST_Y)},
+                        {port_position(TILE_MIDDLE_X - 2, 0)}};
+                    return {t, {}, pl, std::make_pair(rotate_270(FLIP_FLOP), rotate_270(FLIP_FLOP_CLOCK_SCHEME))};
+                }
+            }
+
+            if (lyt.has_western_incoming_signal(t))
+            {
+                // LOG("[set_up_gate] Synchronization element with western incoming signal");
+                port_list<port_position> pl = {
+                    {port_position(0, TILE_MIDDLE_Y + 1), port_position(0, TILE_MIDDLE_Y + 3)},
+                    {port_position(TILE_LAST_X, TILE_MIDDLE_Y - 2)}};
+                return {t, {}, pl, std::make_pair(FLIP_FLOP, FLIP_FLOP_CLOCK_SCHEME)};
+            }
         }
 
         if constexpr (mockturtle::has_is_and_v<GateLyt>)
@@ -145,17 +186,13 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // outputs
                 if (lyt.has_southern_outgoing_signal(t))
                 {
-                    port_list<port_position> pl = {
-                        {port_position(0, TILE_MIDDLE_Y),
-                         port_position(TILE_MIDDLE_X, 0)
-                        },
-                        {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)},
+                                                   {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(CONJUNCTION), rotate_90(CONJUNCTION_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y),
-                                                    port_position(TILE_MIDDLE_X, 0)},
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)},
                                                    {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t,
                             {},
@@ -171,12 +208,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                 // outputs
                 if (lyt.has_southern_outgoing_signal(t))
                 {
-                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)},
+                                                   {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(DISJUNCTION), rotate_90(DISJUNCTION_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0)},
+                                                   {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t,
                             {},
                             pl,
@@ -190,13 +229,15 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             {
                 if (lyt.has_southern_outgoing_signal(t))
                 {
-                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0), port_position(TILE_LAST_X, TILE_MIDDLE_Y)},
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0),
+                                                    port_position(TILE_LAST_X, TILE_MIDDLE_Y)},
                                                    {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}};
                     return {t, {}, pl, std::make_pair(rotate_90(MAJORITY), rotate_90(MAJORITY_CLOCK_SCHEME))};
                 }
                 else
                 {
-                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0), port_position(TILE_MIDDLE_X, TILE_LAST_Y)},
+                    port_list<port_position> pl = {{port_position(0, TILE_MIDDLE_Y), port_position(TILE_MIDDLE_X, 0),
+                                                    port_position(TILE_MIDDLE_X, TILE_LAST_Y)},
                                                    {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}};
                     return {t, {}, pl, std::make_pair(MAJORITY, MAJORITY_CLOCK_SCHEME)};
                 }
@@ -206,29 +247,25 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         const auto pair      = determine_port_routing(lyt, t);
         auto       p         = pair.second;
         const auto pred_tile = pair.first;
-        FMTPRINT(" ==> Pair: ", p);
-        FMTPRINT(" ==> Pair first inp: ", p.inp);
-        FMTPRINT(" ==> Pair first out: ", p.out);
-        FMTPRINT(" ==> Pair second: ", pred_tile);
+        // FMTPRINT(" => Pair: ", p);
+        // FMTPRINT(" => Pair first inp: ", p.inp);
+        // FMTPRINT(" => Pair first out: ", p.out);
+        // FMTPRINT(" => Pair second: ", pred_tile);
 
         try
         {
             if constexpr (fiction::has_is_inv_v<GateLyt>)
             {
-                // fmt::print("HAS INV V\n");
                 if (lyt.is_inv(n))
                 {
-                    // fmt::print("LYT IS INV V\n");
                     return {t, pred_tile, p, std::make_pair(INVERTER_MAP.at(p), INVERTER_CLOCK_SCHEME_MAP.at(p))};
                 }
             }
 
             if constexpr (fiction::has_is_buf_v<GateLyt>)
             {
-                // fmt::print("HAS BUF V\n");
                 if (lyt.is_buf(n))
                 {
-                    // fmt::print("LYT IS BUF\n");
                     const auto a        = lyt.above(t);
                     const auto is_equal = t != a;
 
@@ -242,17 +279,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                         return {t, pred_tile, p, std::make_pair(CROSSWIRE, CROSSWIRE_CLOCK_SCHEME)};
                     }
 
-                    // fmt::print("-- BUF \n");
                     auto wire            = WIRE_MAP.at(p);
-                    // fmt::print("Wire: {}\n", wire);
                     auto wire_clk_scheme = WIRE_CLOCK_SCHEME_MAP.at(p);
-                    // fmt::print("Wire Clock Scheme Map: {}\n", wire);
 
                     if (lyt.is_pi(n))
                     {
                         const auto inp_mark_pos = p.inp.empty() ? opposite(*p.out.begin()) : *p.inp.begin();
-                        wire                    = mark_cell(WIRE_MAP.at({{port_position(0, TILE_MIDDLE_Y)}, {}}), inp_mark_pos,
-                                                            nmlib_inml_technology::cell_mark::INPUT);
+                        wire = mark_cell(WIRE_MAP.at({{port_position(0, TILE_MIDDLE_Y)}, {}}), inp_mark_pos,
+                                         nmlib_inml_technology::cell_mark::INPUT);
                     }
                     if (lyt.is_po(n))
                     {
@@ -356,7 +390,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             }
         };
 
-        do {
+        do
+        {
             status st = status::SEARCH;
 
             improvement_found = false;
@@ -508,7 +543,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         lyt.foreach_fanin(n,
                           [&lyt, &pre_ff](const auto& fi)
                           {
-                              const auto fin = lyt.get_node(fi);
+                              const auto fin  = lyt.get_node(fi);
                               const auto fint = lyt.get_tile(fin);
 
                               if (lyt.is_synchronization_element(fint))
@@ -520,6 +555,35 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                           });
 
         return pre_ff;
+    }
+    /**
+     * Checks whether the given node has an FlipFlop fanin node.
+     *
+     * @tparam Lyt Gate-level layout type.
+     * @param lyt The layout to check.
+     * @param n Node whose fanins are to be considered.
+     * @return `true` iff `n` has an FlipFlop fanin node.
+     */
+    template <typename Lyt>
+    [[nodiscard]] static bool has_ff_fanout(const Lyt& lyt, const mockturtle::node<Lyt>& n) noexcept
+    {
+        auto post_ff = false;
+
+        lyt.foreach_fanout(n,
+                           [&lyt, &post_ff](const auto& fi)
+                           {
+                               const auto fou  = lyt.get_node(fi);
+                               const auto fout = lyt.get_tile(fou);
+
+                               if (lyt.is_synchronization_element(fout))
+                               {
+                                   post_ff = true;
+                                   return false;  // exit function
+                               }
+                               return true;  // continue iteration
+                           });
+
+        return post_ff;
     }
     /**
      * Checks whether the given node has an fanout node as fanout.
@@ -647,7 +711,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // wires within the circuit
         else if (lyt.is_buf(n) && !lyt.is_pi(n) && !lyt.is_po(n))
         {
-            LOG("IS BUF AND NOT PI AND NOT PO");
+            // LOG("IS BUF AND NOT PI OR PO");
             // inputs
             if (lyt.has_northern_incoming_signal(t))
             {
@@ -674,12 +738,13 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     p.inp.emplace(0u, TILE_MIDDLE_Y);
                 }
             }
-            else if (lyt.has_western_incoming_signal(t)) {
+            else if (lyt.has_western_incoming_signal(t))
+            {
                 pred_tile.x = pred_tile.x - 1;
                 // special case: if predecessor is FF, input port is at (0,7) and (0,9)
-                if (has_ff_fanin(lyt, n)) {
-                    p.inp.emplace(0u, 7);
-                    p.inp.emplace(0u, 9);
+                if (has_ff_fanin(lyt, n))
+                {
+                    p.inp.emplace(0u, 4);
                 }
                 else
                 {
@@ -725,15 +790,18 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                     p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
             }
-            else if (lyt.has_eastern_outgoing_signal(t)) {
+            else if (lyt.has_eastern_outgoing_signal(t))
+            {
                 pred_tile.x = pred_tile.x + 1;
-                // special case: if predecessor is FF, input port is at (0,7) and (0,9)
-                if (has_ff_fanin(lyt, n)) {
-                    p.out.emplace(TILE_LAST_X, 4);
+                // special case: if successor is FF, output port is at (0,7) or (0,9)
+                if (has_ff_fanout(lyt, n))
+                {
+                    p.out.emplace(TILE_LAST_X, 7);
+                    p.out.emplace(TILE_LAST_X, 9);
                 }
                 else
                 {
-                    p.out.emplace(0u, TILE_MIDDLE_Y);
+                    p.out.emplace(TILE_LAST_X, TILE_MIDDLE_Y);
                 }
             }
             else
@@ -819,7 +887,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
             // special case: PO determines output according to its predecessor
             if (lyt.is_po(n))
             {
-                LOG("IS PO");
+                // LOG("IS PO");
                 // if predecessor is an AND/OR/MAJ gate, input port is at (0,3) and output port at (3,3)
                 if (has_and_or_maj_fanin(lyt, n))
                 {
@@ -843,10 +911,11 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
                         return std::make_pair(pred_tile, p);
                     }
                 }
-                else if (has_ff_fanin(lyt, n)) {
-                  pred_tile.x = pred_tile.x - 1;
-                  p.inp.emplace(0u, 4);
-                  p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
+                else if (has_ff_fanin(lyt, n))
+                {
+                    pred_tile.x = pred_tile.x - 1;
+                    p.inp.emplace(0u, 4);
+                    p.out.emplace(TILE_LAST_X, TILE_LAST_Y);
                 }
                 // if input is north-western, output port is at (3,0)
                 else if (lyt.has_north_western_incoming_signal(t))
@@ -1328,7 +1397,142 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     }})};
 
+    // TODO: I need to implement a new version of FF cell to receive a northern input and deliver a right output
+    static constexpr const fcn_gate FLIP_FLOP_FANOUT_MIDDLE_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', 'n', 'N', 'n', 'N', 'n', 'N', 'n', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+    }})};
 
+    static constexpr const fcn_clk_sch FLIP_FLOP_FANOUT_MIDDLE_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  0,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1,  1,  2,  2,  3,  3,  0,  0,  1,  1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    }})};
+
+    static constexpr const fcn_gate FLIP_FLOP_FANOUT_LEFT_BOTTOM_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', 'n', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', 'n', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch FLIP_FLOP_FANOUT_LEFT_BOTTOM_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  0,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1,  1,  2, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  3, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1,  1, -1, -1, -1, -1, -1, -1, -1},
+    }})};
+
+    static constexpr const fcn_gate FLIP_FLOP_INP0_FANIN_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'n', 'N', 'n', 'n', 'N', 'n', 'N', 'n', 'N', 'n', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch FLIP_FLOP_INP0_FANIN_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  0,  1,  1,  1,  2,  2,  3,  3,  0,  0, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    }})};
+
+    static constexpr const fcn_gate FLIP_FLOP_INP1_FANIN_WIRE{cell_list_to_gate<char>(
+    {{
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {'n', 'n', 'N', 'n', 'n', 'N', 'n', 'N', 'n', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'n', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'N', 'n'},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+        {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+    }})};
+
+    static constexpr const fcn_clk_sch FLIP_FLOP_INP1_FANIN_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
+    {{
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        { 0,  0,  1,  1,  1,  2,  2,  3,  3, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    }})};
     // static constexpr const fcn_gate TOP_BOTTOM_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     // {{
     //     {' ', ' ', 'n', ' ', ' '},
@@ -1398,7 +1602,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     //     { 0,  0, -1, -1, -1},
     //     {-1,  -1, 1,  1,  2},
     // }})};
-  
+
     static constexpr const fcn_gate BOTTOM_LOWER_STRAIGHT_INVERTER{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -1888,7 +2092,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     //     {' ', ' ', ' ', ' ', ' '},
     //     {' ', ' ', ' ', ' ', ' '},
     // }})};
-    // 
+    //
     // static constexpr const fcn_clk_sch MIDDLER_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     // {{
     //     {-1, -1, -1, -1, -1},
@@ -2563,7 +2767,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     //     {' ', ' ', ' ', ' ', ' '},
     //     {' ', ' ', ' ', ' ', ' '}
     // }})};
-    // 
+    //
     // static constexpr const fcn_clk_sch LEFT_UP_BENT_WIRE_CLOCK_SCHEME{clock_list_to_clk_sch<int>(
     // {{
     //     {-1, -1, 2, -1, -1},
@@ -2714,7 +2918,7 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
     // ************************************************************
     // *********************** Sequential *************************
     // ************************************************************
-  
+
     static constexpr const fcn_gate FLIP_FLOP{cell_list_to_gate<char>(
     {{
         {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -2803,12 +3007,18 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_WIRE},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_FANOUT_TOP_BOTTOM_RIGHT},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_FANOUT_LEFT_BOTTOM_RIGHT},
+        {{{port_position(TILE_MIDDLE_X, 0)},
+          {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         COUPLER_FANOUT_TOP_BOTTOM_RIGHT},
+        {{{port_position(0, TILE_MIDDLE_Y)},
+          {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         COUPLER_FANOUT_LEFT_BOTTOM_RIGHT},
         // flip-flop wires
         {{{port_position(0, 4)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, BOTTOM_FF_FANOUT_WIRE},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 7)}}, LEFT_RIGHT_FF_FANIN_WIRE},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 9)}}, LEFT_RIGHT_FF_FANIN_WIRE_II},
+        {{{port_position(0, 4)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, FLIP_FLOP_FANOUT_MIDDLE_WIRE},
+        {{{port_position(0, 4)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, FLIP_FLOP_FANOUT_LEFT_BOTTOM_WIRE},
     };
 
     static inline const port_clk_sch_map WIRE_CLOCK_SCHEME_MAP = {
@@ -2836,13 +3046,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // NOTE more wires go here!
 
         // NMLIB Tile of 5x5 FIX
-       // NEW: NMLIB Tile of 13x13
+        // NEW: NMLIB Tile of 13x13
         // straight wires
         {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE_CLOCK_SCHEME},
         {{{}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, LOWER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_LAST_Y)}, {}}, LOWER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, rotate_90(MIDDLER_WIRE_CLOCK_SCHEME)},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         rotate_90(MIDDLER_WIRE_CLOCK_SCHEME)},
         {{{}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_MIDDLE_Y)}, {}}, MIDDLER_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 0)}, {port_position(TILE_LAST_X, 0)}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
@@ -2850,24 +3061,34 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, 0)}, {}}, rotate_180(LOWER_WIRE_CLOCK_SCHEME)},
         // bent wires
         {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}},
+         BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         LEFT_DOWN_BENT_WIRE_CLOCK_SCHEME},
         // staircase wires
         {{{port_position(0, 0)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, TOP_DOWN_STAIRCASE_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_LAST_Y)}, {port_position(TILE_LAST_X, 0)}}, BOTTOM_UP_STAIRCASE_WIRE_CLOCK_SCHEME},
         // special wires
         {{{port_position(0, 0)}, {port_position(1, 0)}}, MAJORITY_WIRE_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, COUPLER_WIRE_CLOCK_SCHEME},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+        {{{port_position(TILE_MIDDLE_X, 0)},
+          {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
          COUPLER_FANOUT_TOP_BOTTOM_RIGHT_CLOCK_SCHEME},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+        {{{port_position(0, TILE_MIDDLE_Y)},
+          {port_position(TILE_MIDDLE_X, TILE_LAST_Y), port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
          COUPLER_FANOUT_LEFT_BOTTOM_RIGHT_CLOCK_SCHEME},
-        // Flip flops wires
+        // Flip-Flop wires
         {{{port_position(0, 4)}, {port_position(TILE_LAST_X, TILE_LAST_Y)}}, BOTTOM_FF_FANOUT_WIRE_CLOCK_SCHEME},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 7)}}, LEFT_RIGHT_FF_FANIN_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 9)}}, LEFT_RIGHT_FF_FANIN_WIRE_II_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, 9)}},
+         LEFT_RIGHT_FF_FANIN_WIRE_II_CLOCK_SCHEME},
+        {{{port_position(0, 4)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         FLIP_FLOP_FANOUT_MIDDLE_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, 4)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         FLIP_FLOP_FANOUT_LEFT_BOTTOM_WIRE_CLOCK_SCHEME},
     };
     /**
      * Lookup table for inverter rotations. Maps ports to corresponding inverters.
@@ -2895,7 +3116,8 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE},
         {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_STRAIGHT_INVERTER},
         {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, TOP_BOTTOM_STRAIGHT_INVERTER},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         TOP_BOTTOM_STRAIGHT_INVERTER},
     };
 
     static inline const port_clk_sch_map INVERTER_CLOCK_SCHEME_MAP = {
@@ -2918,10 +3140,14 @@ class nmlib_inml_library : public fcn_gate_library<nmlib_inml_technology, NMLIB_
         // {{{port_position(2, 0)}, {port_position(2, 4)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
         {{{port_position(0, 3)}, {port_position(3, 0)}}, BOTTOM_LOWER_UP_BENT_INVERTER_CLOCK_SCHEME},
 
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}}, TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
-        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}}, TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         BOTTOM_DOWN_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(0, TILE_MIDDLE_Y)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         MIDDLER_STRAIGHT_INVERTER_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_LAST_X, TILE_MIDDLE_Y)}},
+         TOP_RIGHT_BENT_WIRE_CLOCK_SCHEME},
+        {{{port_position(TILE_MIDDLE_X, 0)}, {port_position(TILE_MIDDLE_X, TILE_LAST_Y)}},
+         TOP_BOTTOM_STRAIGHT_INVERTER_CLOCK_SCHEME},
     };
 };
 }  // namespace fiction

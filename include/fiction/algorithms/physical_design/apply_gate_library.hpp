@@ -102,6 +102,8 @@ class apply_gate_library_impl
                     // GateLibrary::set_up_gate will return a tuple of tile, predecessor tiles, portlist
                     // and a pair of tile and its clocking zone sequence
                     const auto tp = GateLibrary::set_up_gate(gate_lyt, t);
+                    LOG(fmt::format("\ntile: {}, predecessor tiles: {}", std::get<0>(tp), std::get<1>(tp)));
+                    LOG(fmt::format("\nportlist: {}", std::get<2>(tp)));
 
                     auto tile = std::get<0>(tp);
                     // auto pred_tile = std::get<1>(tp);
@@ -224,14 +226,18 @@ class apply_gate_library_impl
         auto g       = gclk.first;
         auto clk     = gclk.second;
 
-        // fmt::print("\n_________________ ASSIGN GATE _________________\n");
+        fmt::print("\n_________________ ASSIGN GATE BEGIN _________________\n");
         // fmt::print("Tile: {} \n", tile);
-        // fmt::print("Cell: {} - Gate Clock Scheme: {}\n", c, clk);
+        // fmt::print("Cell: {} \nGate Clock Scheme: {} \n", c, clk);
         bool is_gate = this->gate_lyt.is_gate(n) && !this->gate_lyt.is_wire(n);
+        // LOG(fmt::format("IS GATE: {}", is_gate));
 
         const auto tile_portlist = tile_gate_cell_layout_map.at(tile).first;
+        LOG(fmt::format("Tile portlist: {}", tile_portlist));
+        LOG(fmt::format("Node: {}", n));
 
         auto checked_clk_zone = assign_clock_zones(pred_tiles, tile, gclk, is_gate);
+        // LOG("__________Assign Clock Zones_____________");
 
         ClockingZoneByPortMap updated_clock_zones;
 
@@ -263,6 +269,7 @@ class apply_gate_library_impl
                 }
             }
         }
+        fmt::print("\n_________________ ASSIGN GATE END_________________\n\n");
     }
 
     GateLibrary::fcn_clk_sch assign_clock_zones(const std::vector<tile<GateLyt>>& pred_tiles, const tile<GateLyt>& tile,
@@ -271,7 +278,7 @@ class apply_gate_library_impl
 
         auto cell = gpair.first;
         auto gclk = gpair.second;
-        // fmt::print("_________________ ASSIGN CLOCK ZONES _________________\n");
+        fmt::print("\n_________________ ASSIGN CLOCK ZONES _________________");
 
         // If the predecessor tile is an empty tile
         // returns the predefined clock scheme
@@ -287,13 +294,15 @@ class apply_gate_library_impl
 
         // Tile list of ports (input or output)
         const auto tile_portlist = tile_gate_cell_layout_map.at(tile).first;
+        // LOG(fmt::format("Tile portlist: {}", tile_portlist));
 
         // Tile input ports list
         std::vector<port_position> tile_inps(tile_portlist.inp.begin(), tile_portlist.inp.end());
+        // LOG(fmt::format("Tile input ports: {}", tile_inps));
 
         // Tile output ports list
         std::vector<port_position> tile_outs(tile_portlist.out.begin(), tile_portlist.out.end());
-        // fmt::print("Tile ports: {} \n", tile_portlist);
+        // LOG(fmt::format("Tile output ports: {} \n", tile_outs));
 
         // Biggest clock zone index of the predecessor tile
         auto pred_biggest_clk_number{-1};
@@ -311,6 +320,8 @@ class apply_gate_library_impl
         // Get predecessor node by input port coordinates
         auto get_pred_node_by_port = [this](auto& tile, auto oppositePort) -> std::pair<int, std::pair<int, int>>
         {
+            fmt::print("\n get_pred_node_by_port: {} - {}", oppositePort.x, oppositePort.y);
+            fmt::print(" tile: {} - {}", tile.x, tile.y);
             int                 node = -1;
             std::pair<int, int> tl{};
             if (oppositePort.x == 0)
@@ -342,11 +353,14 @@ class apply_gate_library_impl
                                               &tile_inp_feeders_clk_zone_map, &tile,
                                               &gclk](auto tilePort, std::vector<port_position> tile_inp_feeders) -> void
         {
+            fmt::print("\n get_tile_inp_feeders_clk_zone: {} - {}", tilePort.x, tilePort.y);
             // Predecessor node
             auto     predPair  = get_pred_node_by_port(tile, tilePort);
             auto     predNode  = predPair.first;
             uint16_t predTileY = predPair.second.first;
             uint16_t predTileX = predPair.second.second;
+            fmt::print("\n predNode: {}", predNode);
+            fmt::print("\n predTile: ({}, {})", predTileY, predTileX);
 
             if (predNode == 0 || predNode == -1)
             {
@@ -357,6 +371,7 @@ class apply_gate_library_impl
 
             if (this->node_outputs_clocking_zones_map.find(predNode) == this->node_outputs_clocking_zones_map.end())
             {
+                // fmt::print("\n node_outputs_clocking_zones_map not found");
                 tile_inp_feeders_clk_zone.push_back(0);
                 tile_inp_feeders_clk_zone_map[tile_inp_feeders[0]] = 0;
                 return;
@@ -364,10 +379,18 @@ class apply_gate_library_impl
 
             auto predNodeOutputsClockingZones = this->node_outputs_clocking_zones_map.at(predNode);
 
+            // fmt::print("\n predNodeOutputsClockingZones: {}", predNodeOutputsClockingZones.size());
+            // for (auto it : predNodeOutputsClockingZones)
+            // {
+            //     fmt::print("\n it: {} - {}", it.first.x, it.first.y);
+            // }
+
             for (auto feeder_port : tile_inp_feeders)
             {
+                // LOG(fmt::format("\nFeeder port: {}", feeder_port));
                 if (predNodeOutputsClockingZones.find(feeder_port) != predNodeOutputsClockingZones.end())
                 {
+                    // LOG(fmt::format("Feeder port clock zone: {}", predNodeOutputsClockingZones.at(feeder_port)));
                     auto feeder_port_clk_zn = predNodeOutputsClockingZones.at(feeder_port);
                     tile_inp_feeders_clk_zone.push_back(feeder_port_clk_zn);
                     tile_inp_feeders_clk_zone_map[feeder_port] = feeder_port_clk_zn;
@@ -415,29 +438,43 @@ class apply_gate_library_impl
             {
                 if (GateLibrary::is_crosswire(cell))
                 {
-                    auto hz_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{(TILE_WIDTH - 1), ((TILE_HEIGHT - 1)/2)}];
-                    auto vt_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{((TILE_WIDTH - 1)/2), (TILE_HEIGHT - 1)}];
+                    auto hz_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{(TILE_WIDTH - 1), ((TILE_HEIGHT - 1) / 2)}];
+                    auto vt_feeder_clk_zn = tile_inp_feeders_clk_zone_map[{((TILE_WIDTH - 1) / 2), (TILE_HEIGHT - 1)}];
                     if ((hz_feeder_clk_zn == 1 || hz_feeder_clk_zn == 2) &&
                         (vt_feeder_clk_zn == 0 || vt_feeder_clk_zn == 3))
                     {
                         // set crosswire clk sch type II
-                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1)/2)}] = 2;
-                        new_inps_clk_zones[{((TILE_WIDTH - 1)/2), 0}] = 0;
+                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1) / 2)}] = 2;
+                        new_inps_clk_zones[{((TILE_WIDTH - 1) / 2), 0}]  = 0;
                     }
                     else
                     {
                         // set crosswire clk sch type I
-                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1)/2)}] = 0;
-                        new_inps_clk_zones[{((TILE_WIDTH - 1)/2), 0}] = 2;
+                        new_inps_clk_zones[{0, ((TILE_HEIGHT - 1) / 2)}] = 0;
+                        new_inps_clk_zones[{((TILE_WIDTH - 1) / 2), 0}]  = 2;
                     }
                 }
                 else
                 {
-
                     // Visit each tile input port and store its clock zone
                     for (size_t i{0}; i < tile_inp_feeders.size(); i++)
                     {
-                        auto feeder_clk_zn               = tile_inp_feeders_clk_zone_map.at(tile_inp_feeders[i]);
+                        // LOG(fmt::format("Tile Inp Feeders: {}", tile_inp_feeders[i]));
+                        auto feeder_clk_zn          = 0;
+                        auto previous_feeder_clk_zn = 0;
+                        // auto it = std::find(tile_inp_feeders_clk_zone_map.begin(), tile_inp_feeders_clk_zone_map.end(),
+                        //                     tile_inp_feeders[i]);
+                        if (tile_inp_feeders_clk_zone_map.find(tile_inp_feeders[i]) != tile_inp_feeders_clk_zone_map.end())
+                        {
+                            different_clk_zones    = true;
+                            feeder_clk_zn          = tile_inp_feeders_clk_zone_map.at(tile_inp_feeders[i]);
+                            previous_feeder_clk_zn = feeder_clk_zn;
+                        }
+                        else
+                        {
+                            feeder_clk_zn = previous_feeder_clk_zn;
+                        }
+                        // LOG(fmt::format("Feeder Clk Zn: {}", feeder_clk_zn));
                         new_inps_clk_zones[tile_inps[i]] = (feeder_clk_zn + 1) % 4;
                     }
                 }
@@ -449,6 +486,7 @@ class apply_gate_library_impl
 
         auto min_magnet_qntt = [](int src_clk_zn, int dst_clk_zn) -> int
         {
+            // fmt::print("min_magnet_qntt - Src Clk Zn: {}\nDst Clk Zn: {}\n", src_clk_zn, dst_clk_zn);
             int result_clk_zn   = src_clk_zn;
             int min_magnet_qntt = 0;
             int prv_dst_clk_zn  = dst_clk_zn - 1;
@@ -470,14 +508,13 @@ class apply_gate_library_impl
                                                  &get_tile_inps_clk_zone,
                                                  &min_magnet_qntt](auto tile_inp_feeders) -> void
         {
-            // fmt::print("_________________ UPDATE TILE CLK ZONES SEQUENCE _________________\n");
             auto tile_inp_clk_zones = get_tile_inps_clk_zone(tile_inp_feeders);
 
             // fmt::print("TIle INP CLK ZONES: \n {} \n", tile_inp_clk_zones);
             if (GateLibrary::is_crosswire(cell))
             {
                 // fmt::print(" IS CROSSWIRE \n");
-                if (tile_inp_clk_zones[{0, (TILE_HEIGHT/2)}] == 2 && tile_inp_clk_zones[{(TILE_WIDTH/2), 0}] == 0)
+                if (tile_inp_clk_zones[{0, (TILE_HEIGHT / 2)}] == 2 && tile_inp_clk_zones[{(TILE_WIDTH / 2), 0}] == 0)
                 {
                     // set crosswire clk sch type II
                     gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(1);
@@ -486,7 +523,7 @@ class apply_gate_library_impl
                 gate_clk_sch = GateLibrary::get_crosswire_clock_scheme(0);
                 return;
             }
-            
+
             // fmt::print("Gate Clock Scheme: {}\n", gate_clk_sch);
 
             // std::vector<std::pair<int, int>> clk_zone_sequence_to_update;
@@ -540,13 +577,6 @@ class apply_gate_library_impl
                 auto inp_clk_zone = tile_inp_clk_zones.at(inp);
                 auto out_clk_zone = gate_clk_sch[out.y][out.x];
 
-                if (inp_clk_zone == gate_clk_sch[inp.y][inp.x])
-                {
-                    // The input magnet is already in the correct clock zone
-                    fmt::print("The input magnet is already in the correct clock zone\n");
-                    continue;
-                }
-
                 // Update the input magnet clock zone
                 gate_clk_sch[inp.y][inp.x] = inp_clk_zone % CLOCK_ZONES_QNTT;
 
@@ -554,7 +584,6 @@ class apply_gate_library_impl
                 auto                                       o_clk_zn = out_clk_zone;
                 std::vector<std::pair<long int, long int>> visited_magnets{std::make_pair(inp.x, inp.y),
                                                                            std::make_pair(out.x, out.y)};
-                // fmt::print("inp: {} - clk zn: {}\nout: {} - clk zn: {}\n", inp, i_clk_zn, out, o_clk_zn);
 
                 // TODO: ITerate over path to update magnets clock zones
                 for (size_t j{clk_zn_seq.size() - 2}; j > 0; --j)
@@ -692,7 +721,9 @@ class apply_gate_library_impl
         // Loop to search the feeders of all input ports of current tile
         for (size_t i{0}; i < tile_inps.size(); ++i)
         {
+            // LOG("\n Going to get oppositePort");
             auto oppositePort = GateLibrary::opposite(tile_inps[i]);
+            // LOG(fmt::format("Opposite Port: {}", oppositePort));
             tile_inp_feeders.push_back(oppositePort);
             get_tile_inp_feeders_clk_zone(oppositePort, tile_inp_feeders);
         }

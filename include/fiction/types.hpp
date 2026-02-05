@@ -21,6 +21,7 @@
 #include <mockturtle/networks/aig.hpp>
 #include <mockturtle/networks/mig.hpp>
 #include <mockturtle/networks/xag.hpp>
+#include <mockturtle/networks/sequential.hpp>
 #include <mockturtle/views/names_view.hpp>
 
 #include <memory>
@@ -69,11 +70,23 @@ inline constexpr const char* tec_name = "TEC";
 
 using logic_network_t = std::variant<aig_ptr, xag_ptr, mig_ptr, tec_ptr>;
 
+/**
+ * Sequential networks.
+ */
+// using seq_aig_nt  = mockturtle::names_view<mockturtle::sequential<mockturtle::aig_network>>;
+using seq_aig_nt  = mockturtle::sequential<mockturtle::aig_network>;
+using seq_aig_ptr = std::shared_ptr<seq_aig_nt>;
+
+inline constexpr const char* seq_aig_name = "SEQ_AIG";
+
+using seq_network_t = std::variant<seq_aig_ptr>;
+
 template <class Ntk>
 inline constexpr const char* ntk_type_name = std::is_same_v<std::decay_t<Ntk>, aig_nt> ? aig_name :
                                              std::is_same_v<std::decay_t<Ntk>, xag_nt> ? xag_name :
                                              std::is_same_v<std::decay_t<Ntk>, mig_nt> ? mig_name :
                                              std::is_same_v<std::decay_t<Ntk>, tec_nt> ? tec_name :
+                                             std::is_same_v<std::decay_t<Ntk>, seq_aig_nt> ? seq_aig_name :
                                                                                          "?";
 
 /**
